@@ -103,7 +103,7 @@ export class ChromaVectorStore implements VectorStore {
     // In a real implementation, you'd use a proper embedding model
     const embeddings = [new Array(384).fill(0).map((_, _i) => Math.random())] // Dummy 384-dimensional embedding
 
-    await this.collection!.add({
+    await this.collection?.add({
       documents,
       metadatas,
       ids,
@@ -122,7 +122,7 @@ export class ChromaVectorStore implements VectorStore {
 
     try {
       const queryEmbeddings = [new Array(384).fill(0).map(() => Math.random())]
-      const results = await this.collection!.query({ queryEmbeddings, nResults: k })
+      const results = await this.collection?.query({ queryEmbeddings, nResults: k })
 
       if (!results.documents?.[0]) return []
 
@@ -158,7 +158,7 @@ export class ChromaVectorStore implements VectorStore {
       throw new Error('Vector store not initialized')
     }
 
-    await this.collection!.delete({
+    await this.collection?.delete({
       ids,
     })
   }
@@ -169,7 +169,7 @@ export class ChromaVectorStore implements VectorStore {
     }
 
     try {
-      const result = await this.collection!.get()
+      const result = await this.collection?.get()
 
       if (result.documents && result.documents.length > 0) {
         return {

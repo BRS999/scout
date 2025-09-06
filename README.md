@@ -41,7 +41,7 @@ scout/
 - **Linting/Formatting**: Biome
 - **Backend**: Fastify + Node.js
 - **Frontend**: Next.js + React
-- **Database**: PostgreSQL
+- **Database**: Chromadb
 - **Cache**: Redis
 - **Search**: SearX 
 
@@ -111,32 +111,6 @@ const agent: Agent = {
   // ...
 };
 ```
-
-### `@scout/core`
-Core business logic including:
-- Base Agent class
-- Routing system
-- Memory management
-- LLM provider abstraction
-
-### `@scout/agents`
-Specialized agent implementations:
-- Casual Agent
-- Coder Agent
-- Browser Agent
-- Data Analyst Agent
-- Research Agent
-
-### `@scout/tools`
-Tool implementations:
-- Code executors (JS, Python, Rust, etc.)
-- File system operations
-- API clients
-- Database connectors
-- Image processors
-
-### `@scout/web`
-Shared web components and utilities for the frontend.
 
 ## 🔧 Development
 
