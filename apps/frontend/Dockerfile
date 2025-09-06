@@ -24,8 +24,8 @@ COPY apps/backend/package.json ./apps/backend/
 COPY apps/frontend/package.json ./apps/frontend/
 
 # Install dependencies (workspace-aware)
-# Use npm install instead of ci due to workspace dependency issues  
-RUN npm install
+# Use legacy peer deps to resolve LangChain dependency conflicts
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .

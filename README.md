@@ -67,9 +67,18 @@ cd scout
 npm install
 ```
 
-2. **Start services**:
+2. **Environment Configuration**:
 ```bash
-Rename .env.example to .env
+# Copy the environment template
+cp .env.example .env
+
+# Edit .env with your configuration
+# Required: LMSTUDIO_URL and LOCAL_MODEL for LLM integration
+# Optional: OPENAI_API_KEY if using OpenAI instead of LM Studio
+```
+
+3. **Start services**:
+```bash
 # Start Docker services (reuses original SearX)
 cd docker
 docker-compose up -d
@@ -78,7 +87,7 @@ docker-compose up -d
 ./start-services.sh
 ```
 
-3. **Development**:
+4. **Development**:
 ```bash
 # Start all packages in development mode
 npm run dev

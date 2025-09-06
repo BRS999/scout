@@ -1,251 +1,13 @@
+import 'dotenv/config'
 import cors from '@fastify/cors'
+import { makeAgent } from '@scout/agent-langchain'
 import { ResearchAgent } from '@scout/agents'
-import { WebSearch } from '@scout/tools'
 import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify'
-import { OpenAI } from 'openai'
 
 // Define types
-interface LLMMessage {
-  role: 'system' | 'user' | 'assistant'
-  content: string
-}
 
-interface Tool {
-  id: string
-  execute: (input: unknown) => Promise<unknown>
-}
-
-// Tools and implementations
-
-class WebScraping {
-  id = 'web_scraping'
-  name = 'Web Scraping'
-  async execute(options: unknown) {
-    const opts = options as { url?: string; query?: string }
-    return {
-      success: true,
-      output: {
-        content: `Mock scraped content from ${opts.url} about ${opts.query || 'general topic'}. This demonstrates the web scraping functionality that extracts relevant information from web pages.`,
-        extractedAt: new Date().toISOString(),
-      },
-      executionTime: 150,
-    }
-  }
-}
-
-class BrowserAgent {
-  name = 'Browser Agent'
-  tools: Tool[] = []
-
-  addTool(tool: Tool) {
-    this.tools.push(tool)
-  }
-
-  async process(query: unknown) {
-    const q = query as { content: string }
-    try {
-      // First, generate an optimized search query using LLM
-      const searchQuery = await this.generateSearchQuery(q.content)
-      console.log('Generated search query:', searchQuery)
-
-      const searchTool = this.tools.find((t) => t.id === 'web_search')
-      if (!searchTool) {
-        throw new Error('Web search tool not available')
-      }
-
-      // Perform the search
-      const searchResults = (await searchTool?.execute(searchQuery)) as {
-        success: boolean
-        output: unknown[]
-      }
-
-      if (!(searchResults.success && searchResults.output) || searchResults.output.length === 0) {
-        return {
-          answer: `I couldn't find relevant information for "${q.content}". The search didn't return any results.`,
-          reasoning: 'Search failed or returned no results',
-          agentName: this.name,
-          success: false,
-          blocks: [],
-          status: 'error',
-          executionTime: 100,
-        }
-      }
-
-      // Use LLM to synthesize the results
-      const synthesisPrompt = this.createSynthesisPrompt(
-        q.content,
-        searchResults.output as { title: string; snippet: string; link: string }[]
-      )
-      const synthesisResult = await llmProvider.chat(
-        [
-          {
-            role: 'user',
-            content: synthesisPrompt,
-          },
-        ],
-        {
-          temperature: 0.7,
-          maxTokens: 1500,
-        }
-      )
-
-      const finalAnswer = synthesisResult.content
-
-      return {
-        answer: finalAnswer,
-        reasoning: `Generated optimized search query "${searchQuery}" and synthesized ${searchResults.output.length} results using LLM`,
-        agentName: this.name,
-        success: true,
-        blocks: [],
-        status: 'completed',
-        executionTime: 800,
-      }
-    } catch (error) {
-      console.error('BrowserAgent error:', error)
-      return {
-        answer: `Error processing web query: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        reasoning: 'LLM processing failed',
-        agentName: this.name,
-        success: false,
-        blocks: [],
-        status: 'error',
-        executionTime: 100,
-      }
-    }
-  }
-
-  private async generateSearchQuery(userQuery: string): Promise<string> {
-    const prompt = `You are an expert at creating effective search engine queries. Given the user's question, create a concise, effective search query that will return the most relevant results.
-
-User's question: "${userQuery}"
-
-Create a search query that:
-- Uses specific keywords
-- Includes relevant context
-- Avoids unnecessary words
-- Is optimized for search engines
-
-Return only the search query, nothing else.`
-
-    try {
-      const response = await llmProvider.chat(
-        [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        {
-          temperature: 0.3,
-          maxTokens: 100,
-        }
-      )
-
-      return response.content.trim().replace(/^["']|["']$/g, '') // Remove quotes if present
-    } catch (error) {
-      console.error('Error generating search query:', error)
-      return userQuery // Fallback to original query
-    }
-  }
-
-  private createSynthesisPrompt(
-    userQuery: string,
-    searchResults: Array<{ title: string; snippet: string; link: string }>
-  ): string {
-    const resultsText = searchResults
-      .slice(0, 8)
-      .map(
-        (result, index) =>
-          `${index + 1}. Title: ${result.title}\n   Snippet: ${result.snippet}\n   Source: ${result.link}`
-      )
-      .join('\n\n')
-
-    return `Based on the following search results, provide a comprehensive and accurate answer to the user's question.
-
-User's question: "${userQuery}"
-
-Search Results:
-${resultsText}
-
-Please provide:
-1. A direct answer to the question
-2. Key facts and information from the sources
-3. Source citations where relevant
-4. If the information is insufficient, clearly state what additional information would be needed
-
-Structure your response naturally and conversationally, as if you're explaining this to someone. Include specific details and avoid generic statements.`
-  }
-
-  private shouldUseSearch(_query: string): boolean {
-    // BrowserAgent always uses search since it's the search agent
-    return true
-  }
-
-  // Alternative LLM-powered method (commented out for now)
-  async processWithLLM(query: { content: string }) {
-    try {
-      // First perform web search
-      const searchTool = this.tools.find((t) => t.id === 'web_search')
-      let searchResults: { success: boolean; output: unknown[] } = { success: false, output: [] }
-
-      if (searchTool) {
-        searchResults = (await searchTool.execute(query.content)) as {
-          success: boolean
-          output: unknown[]
-        }
-      }
-
-      // Prepare context from search results
-      let searchContext = ''
-      if (searchResults.success && searchResults.output && searchResults.output.length > 0) {
-        searchContext = (searchResults.output as { title: string; snippet: string; link: string }[])
-          .map(
-            (result, index: number) =>
-              `${index + 1}. ${result.title}\n   ${result.snippet}\n   Source: ${result.link}`
-          )
-          .join('\n\n')
-      }
-
-      // Use LLM to synthesize response
-      const messages: LLMMessage[] = [
-        {
-          role: 'system',
-          content: `You are a specialized web browsing assistant. You have access to web search and scraping tools. Based on the provided search results, give a comprehensive and helpful answer to the user's query. If the search results are insufficient, mention that you can perform additional searches.`,
-        },
-        {
-          role: 'user',
-          content: `Query: ${query.content}\n\n${searchContext ? `Search Results:\n${searchContext}` : 'No search results available.'}\n\nPlease provide a comprehensive answer based on the available information.`,
-        },
-      ]
-
-      const llmResponse = await llmProvider.chat(messages, {
-        temperature: 0.7,
-        maxTokens: 2048,
-      })
-
-      return {
-        answer: llmResponse.content,
-        reasoning: 'Used web search and LLM synthesis for comprehensive answer',
-        agentName: this.name,
-        success: true,
-        blocks: [],
-        status: 'completed',
-        executionTime: 800,
-      }
-    } catch (error) {
-      console.error('BrowserAgent LLM error:', error)
-      return {
-        answer: `Error processing web query: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        reasoning: 'LLM processing failed',
-        agentName: this.name,
-        success: false,
-        blocks: [],
-        status: 'error',
-        executionTime: 100,
-      }
-    }
-  }
-}
+// NOTE: Old DIY tools and agents moved to LangChain
+// WebScraping and BrowserAgent replaced by @scout/agent-langchain tools
 
 interface Query {
   id: string
@@ -267,228 +29,13 @@ fastify.register(cors, {
   origin: true, // Allow all origins for development
 })
 
-// MCP-like SearxNG Tool for LLM integration
-class SearxNGTool {
-  private webSearch: WebSearch
+// NOTE: SimpleLLMProvider moved to LangChain agent
+// Old DIY LLM provider - kept for reference but replaced by @scout/agent-langchain
 
-  constructor(webSearchInstance: WebSearch) {
-    this.webSearch = webSearchInstance
-  }
+// NOTE: Old tool/agent initialization replaced by LangChain
+// Tools and agents now initialized in @scout/agent-langchain package
 
-  // MCP-like tool definition
-  getToolDefinition() {
-    return {
-      name: 'search_web',
-      description:
-        'Search the web using SearxNG for current information, news, tutorials, and general knowledge queries',
-      parameters: {
-        type: 'object',
-        properties: {
-          query: {
-            type: 'string',
-            description: 'The search query to perform',
-          },
-          max_results: {
-            type: 'number',
-            description: 'Maximum number of results to return (default: 5)',
-            default: 5,
-          },
-        },
-        required: ['query'],
-      },
-    }
-  }
-
-  // Execute the tool
-  async execute(query: string, maxResults = 5) {
-    try {
-      const results = await this.webSearch.execute(query)
-
-      if (!(results.success && results.output)) {
-        return {
-          success: false,
-          error: 'Search failed',
-          results: [],
-        }
-      }
-
-      // Format results for LLM consumption
-      const outputArray = Array.isArray(results.output) ? results.output : []
-      const formattedResults = outputArray
-        .slice(0, maxResults)
-        .map(
-          (
-            result: { title: string; snippet: string; link: string; source?: string },
-            index: number
-          ) => ({
-            rank: index + 1,
-            title: result.title,
-            snippet: result.snippet,
-            url: result.link,
-            source: result.source,
-          })
-        )
-
-      return {
-        success: true,
-        query: query,
-        total_results: outputArray.length,
-        returned_results: formattedResults.length,
-        results: formattedResults,
-        execution_time: results.executionTime,
-      }
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        results: [],
-      }
-    }
-  }
-}
-
-// Simple LLM Provider for LLM Studio
-class SimpleLLMProvider {
-  private client: OpenAI
-  private searxngTool: SearxNGTool
-
-  constructor(baseUrl: string, searxngTool: SearxNGTool) {
-    this.client = new OpenAI({
-      apiKey: 'not-needed-for-local',
-      baseURL: baseUrl,
-      dangerouslyAllowBrowser: true,
-    })
-    this.searxngTool = searxngTool
-  }
-
-  async chat(messages: LLMMessage[], options: Record<string, unknown> = {}) {
-    try {
-      // Check if the query needs web search
-      const lastMessage = messages[messages.length - 1]
-      const needsSearch = this.shouldUseSearch(lastMessage.content)
-
-      if (needsSearch) {
-        // Perform search and add results to context
-        const searchQuery = await this.generateSearchQuery(lastMessage.content)
-        const searchResults = await this.searxngTool.execute(searchQuery, 5)
-
-        if (searchResults.success && searchResults.results.length > 0) {
-          // Add search results to the messages
-          const searchContext = this.formatSearchResults(searchResults)
-          messages.push({
-            role: 'system',
-            content: `Here are the relevant web search results for the user's query:\n\n${searchContext}\n\nUse this information to provide a comprehensive and accurate answer.`,
-          })
-        }
-      }
-
-      const completion = (await this.client.chat.completions.create({
-        model: (options.model || process.env.LLM_STUDIO_MODEL || 'gpt-3.5-turbo') as any,
-        messages: messages.map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-        })),
-        temperature: (options.temperature || 0.7) as any,
-        max_tokens: (options.maxTokens || 4096) as any,
-        stream: false,
-      })) as {
-        choices: { message?: { content?: string }; finish_reason?: string }[]
-        usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
-      }
-
-      const choice = completion.choices[0]
-      if (!choice) {
-        throw new Error('No completion choices returned')
-      }
-
-      const content = choice.message?.content || ''
-
-      return {
-        content,
-        usage: completion.usage
-          ? {
-              promptTokens: completion.usage.prompt_tokens,
-              completionTokens: completion.usage.completion_tokens,
-              totalTokens: completion.usage.total_tokens,
-            }
-          : undefined,
-        finishReason: choice.finish_reason || undefined,
-      }
-    } catch (error) {
-      console.error('LLM error:', error)
-      throw error
-    }
-  }
-
-  private shouldUseSearch(query: string): boolean {
-    const searchKeywords = [
-      'current',
-      'latest',
-      'recent',
-      'news',
-      'today',
-      'now',
-      'what is',
-      'how to',
-      'explain',
-      'tell me about',
-      'search for',
-      'find',
-      'look up',
-      'information about',
-    ]
-
-    const lowerQuery = query.toLowerCase()
-    return searchKeywords.some((keyword) => lowerQuery.includes(keyword))
-  }
-
-  private async generateSearchQuery(userQuery: string): Promise<string> {
-    // Extract key terms for search
-    const prompt = `Create a concise search query for: "${userQuery}"
-
-Return only the search query, no explanations.`
-
-    try {
-      const response = (await this.client.chat.completions.create({
-        model: 'gpt-oss',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.3,
-        max_tokens: 50,
-      })) as { choices: { message?: { content?: string } }[] }
-
-      return response.choices[0]?.message?.content?.trim() || userQuery
-    } catch (_error) {
-      return userQuery // Fallback
-    }
-  }
-
-  private formatSearchResults(searchResults: {
-    results: Array<{ rank: number; title: string; snippet: string; url: string }>
-  }): string {
-    return searchResults.results
-      .map(
-        (result: { rank: number; title: string; snippet: string; url: string }) =>
-          `${result.rank}. ${result.title}\n   ${result.snippet}\n   Source: ${result.url}`
-      )
-      .join('\n\n')
-  }
-}
-
-// Initialize tools first
-const webSearch = new WebSearch(process.env.SEARXNG_BASE_URL)
-const webScraping = new WebScraping()
-
-// Initialize SearxNG tool with webSearch instance
-const searxngTool = new SearxNGTool(webSearch)
-
-// Initialize LLM Provider with searxng tool
-const llmProvider = new SimpleLLMProvider(
-  process.env.LLM_STUDIO_BASE_URL || 'http://host.docker.internal:1234/v1',
-  searxngTool
-)
-
-// Initialize agents
-const browserAgent = new BrowserAgent()
+// Initialize research agent for legacy endpoints
 const researchAgent = new ResearchAgent({
   search: {
     searxng_url: process.env.SEARXNG_BASE_URL || 'http://localhost:8080',
@@ -498,10 +45,6 @@ const researchAgent = new ResearchAgent({
     sqlite_path: './data/research_memory.db',
   },
 })
-
-// Register tools with agents
-browserAgent.addTool(webSearch)
-browserAgent.addTool(webScraping)
 
 // Routes
 fastify.get('/health', async (_request: FastifyRequest, _reply: FastifyReply) => {
@@ -516,117 +59,30 @@ fastify.post('/query', async (request: FastifyRequest, reply: FastifyReply) => {
   }
 
   try {
-    const query: Query = {
+    const _query: Query = {
       id: generateId(),
       content: queryText,
       timestamp: new Date(),
       userId: 'user',
     }
 
-    // Intelligent agent routing based on query analysis
-    let selectedAgent: BrowserAgent = browserAgent
-    const lowerQuery = queryText.toLowerCase()
-
-    // Keywords that indicate web search is needed
-    const searchKeywords = [
-      'search',
-      'find',
-      'what is',
-      'how to',
-      'information about',
-      'tell me about',
-      'explain',
-      'who is',
-      'when did',
-      'where is',
-      'why does',
-      'how does',
-      'latest',
-      'recent',
-      'current',
-      'news about',
-      'article about',
-      'guide to',
-      'tutorial',
-      'documentation',
-      'examples of',
-      'best practices',
-      'tips for',
-    ]
-
-    // Check for search intent
-    const needsSearch = searchKeywords.some((keyword) => lowerQuery.includes(keyword))
-
-    // Check for specific coding/programming terms that should stay with coder agent
-    const codingKeywords = [
-      'function',
-      'class',
-      'variable',
-      'import',
-      'export',
-      'const',
-      'let',
-      'var',
-      'debug',
-      'error',
-      'exception',
-      'syntax',
-      'compile',
-      'build',
-      'run',
-      'execute',
-      'algorithm',
-      'data structure',
-      'api',
-      'endpoint',
-      'database',
-      'query',
-      'file',
-      'directory',
-      'path',
-      'install',
-      'package',
-      'module',
-      'library',
-    ]
-
-    const _isCodingQuery = codingKeywords.some((keyword) => lowerQuery.includes(keyword))
-
-    // Use ResearchAgent for research queries, BrowserAgent for general queries
-    if (needsSearch) {
-      selectedAgent = researchAgent as unknown as BrowserAgent // Temporary type assertion
-    }
-
-    const result = await selectedAgent.process(query)
+    // Use ResearchAgent for all queries (migrating to LangChain)
+    const result = await researchAgent.research({
+      question: queryText,
+      description: 'User query from Scout interface',
+    })
 
     return {
       id: generateId(),
       query: queryText,
       result: {
         answer: result.answer,
-        reasoning: result.reasoning,
-        agent: result.agentName,
-        success: result.success,
-        executionTime: result.executionTime,
-        blocks: result.blocks?.map(
-          (block: {
-            id?: string
-            type?: string
-            language?: string
-            content?: string
-            output?: string
-            error?: string
-            success?: boolean
-          }) => ({
-            id: block.id,
-            type: block.type,
-            language: block.language,
-            content: block.content,
-            output: block.output,
-            error: block.error,
-            success: block.success,
-          })
-        ),
+        reasoning: `Researched using ${result.sources?.length || 0} sources`,
+        agent: 'ResearchAgent',
+        success: result.confidence ? result.confidence > 0.5 : true,
+        executionTime: 1000, // Placeholder
+        sources: result.sources,
+        confidence: result.confidence,
       },
       timestamp: new Date().toISOString(),
     }
@@ -741,6 +197,73 @@ fastify.get('/research/stats', async (_request: FastifyRequest, _reply: FastifyR
       },
       error: 'Failed to load stats',
     }
+  }
+})
+
+// LangChain Agent route
+let langchainAgent: Awaited<ReturnType<typeof makeAgent>> | null = null
+
+// GET /api/agent for health checks or preflight requests
+fastify.get('/api/agent', async (_request: FastifyRequest, reply: FastifyReply) => {
+  return reply.send({
+    status: 'ok',
+    message: 'LangChain agent endpoint available',
+    method: 'POST required for queries',
+  })
+})
+fastify.post('/api/agent', async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { messages } = (request.body as { messages?: { role: string; content: string }[] }) ?? {
+      messages: [],
+    }
+
+    // Initialize agent on first request
+    if (!langchainAgent) {
+      console.log('🚀 Initializing LangChain agent...')
+      // Set environment variables for the agent
+      process.env.LMSTUDIO_URL = process.env.LMSTUDIO_URL || 'http://127.0.0.1:1234/v1'
+      process.env.LOCAL_MODEL = process.env.LOCAL_MODEL || 'openai/gpt-oss-20b'
+      console.log('Environment variables set:', {
+        LMSTUDIO_URL: process.env.LMSTUDIO_URL,
+        LOCAL_MODEL: process.env.LOCAL_MODEL,
+      })
+      langchainAgent = await makeAgent()
+      console.log('✅ LangChain agent ready')
+    }
+
+    // Convert UI messages to AgentExecutor input (use last user message as input)
+    const lastUserMessage = messages?.filter((m) => m.role === 'user').pop()
+    const input = lastUserMessage?.content ?? ''
+
+    if (!input) {
+      return reply.code(400).send({ error: 'No user message found' })
+    }
+
+    console.log(`🤖 Processing agent request: "${input.substring(0, 100)}..."`)
+
+    // Execute agent
+    const result = await langchainAgent.invoke({
+      input,
+    })
+
+    console.log(`✅ Agent response generated (${result.output?.length || 0} chars)`)
+
+    return reply.send({
+      id: generateId(),
+      content: result.output ?? 'No response generated',
+      role: 'assistant',
+      timestamp: new Date().toISOString(),
+      // Include intermediate steps for debugging if available
+      ...(result.intermediateSteps && {
+        intermediateSteps: result.intermediateSteps,
+      }),
+    })
+  } catch (error) {
+    console.error('❌ Agent error:', error)
+    return reply.code(500).send({
+      error: 'Agent processing failed',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    })
   }
 })
 

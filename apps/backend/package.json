@@ -14,17 +14,18 @@
     "format:write": "biome format --write ."
   },
   "dependencies": {
-    "fastify": "^4.24.0",
     "@fastify/cors": "^8.5.0",
-    "openai": "^4.28.0",
-    "@scout/tools": "*"
+    "@scout/tools": "*",
+    "fastify": "^4.24.0",
+    "openai": "^4.28.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "tsx": "^4.0.0",
-    "typescript": "^5.0.0",
+    "@fastify/cors": "^8.5.0",
     "@types/express": "^4.17.0",
+    "@types/node": "^20.0.0",
+    "dotenv": "^16.6.1",
     "fastify": "^4.24.0",
-    "@fastify/cors": "^8.5.0"
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
   }
 }
