@@ -1,6 +1,7 @@
 import { StructuredTool } from '@langchain/core/tools'
 import { z } from 'zod'
 import { getMemory } from '../memory/memory'
+import type { ContentChunk } from '@scout/memory'
 
 /**
  * Memory upsert tool for storing content in vector DB
@@ -33,7 +34,7 @@ export class MemUpsertTool extends StructuredTool {
         success: true,
         stored_at: new Date().toISOString(),
         chunk_count: chunks.length,
-        chunk_ids: chunks.map((c) => c.id),
+        chunk_ids: chunks.map((c: ContentChunk) => c.id),
       }
       return JSON.stringify(res)
     } catch (error) {

@@ -1,6 +1,7 @@
 import { StructuredTool } from '@langchain/core/tools'
 import { z } from 'zod'
 import { getMemory } from '../memory/memory'
+import type { MemoryMatch } from '@scout/memory'
 
 /**
  * Memory search tool for vector DB operations
@@ -29,7 +30,7 @@ export class MemSearchTool extends StructuredTool {
       const memory = await getMemory()
       const matches = await memory.search({ query: search_query, k: max_results, threshold })
 
-      const payload = matches.map((m) => ({
+      const payload = matches.map((m: MemoryMatch) => ({
         id: m.chunk.id,
         text: m.chunk.text,
         similarity_score: m.similarity_score,
