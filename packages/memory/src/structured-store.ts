@@ -360,17 +360,20 @@ export class StructuredStore {
                 metadata: string
                 created_at: string
                 updated_at: string
-              }) => ({
-                id: row.id,
-                text: row.text,
-                metadata: {
-                  ...JSON.parse(row.metadata),
-                  source_url: (row as any).source_url,
-                  relevance_score: (row as any).relevance_score,
-                },
-                createdAt: new Date(row.created_at),
-                updatedAt: new Date(row.updated_at),
-              })
+              }) => {
+                const parsedMetadata = JSON.parse(row.metadata) as Record<string, unknown>
+                return {
+                  id: row.id,
+                  text: row.text,
+                  metadata: {
+                    ...parsedMetadata,
+                    source_url: String(parsedMetadata.source_url || ''),
+                    relevance_score: Number(parsedMetadata.relevance_score || 0),
+                  },
+                  createdAt: new Date(row.created_at),
+                  updatedAt: new Date(row.updated_at),
+                }
+              }
             )
             resolve(chunks)
           }

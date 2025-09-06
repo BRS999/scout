@@ -1,7 +1,7 @@
 import { StructuredTool } from '@langchain/core/tools'
+import type { MemoryMatch } from '@scout/memory'
 import { z } from 'zod'
 import { getMemory } from '../memory/memory'
-import type { MemoryMatch } from '@scout/memory'
 
 /**
  * Memory search tool for vector DB operations

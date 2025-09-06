@@ -58,7 +58,7 @@ export class VectorStore {
       return this.getMockSearchResults(options.query, options.k || 5)
     }
 
-    if ('mock' in this.collection!) {
+    if (this.collection && 'mock' in this.collection) {
       return this.getMockSearchResults(options.query, options.k || 5)
     }
 
@@ -106,7 +106,7 @@ export class VectorStore {
       await this.initialize()
     }
     if (!chunks.length) return
-    if (this.useMock || 'mock' in this.collection!) {
+    if (this.useMock || (this.collection && 'mock' in this.collection)) {
       return
     }
 
@@ -132,7 +132,7 @@ export class VectorStore {
       await this.initialize()
     }
     if (!chunkIds.length) return
-    if (this.useMock || 'mock' in this.collection!) return
+    if (this.useMock || (this.collection && 'mock' in this.collection)) return
     await (this.collection as import('chromadb').Collection).delete({ ids: chunkIds })
   }
 
@@ -141,7 +141,7 @@ export class VectorStore {
       await this.initialize()
     }
     const count =
-      this.useMock || 'mock' in this.collection!
+      this.useMock || (this.collection && 'mock' in this.collection)
         ? 0
         : await (this.collection as import('chromadb').Collection).count()
     return { count, collection_name: this.collectionName }

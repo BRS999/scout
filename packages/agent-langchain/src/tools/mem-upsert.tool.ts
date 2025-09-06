@@ -1,7 +1,7 @@
 import { StructuredTool } from '@langchain/core/tools'
+import type { ContentChunk } from '@scout/memory'
 import { z } from 'zod'
 import { getMemory } from '../memory/memory'
-import type { ContentChunk } from '@scout/memory'
 
 /**
  * Memory upsert tool for storing content in vector DB

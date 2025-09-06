@@ -37,25 +37,9 @@ export class SearchRunTool extends StructuredTool {
     try {
       if (!query) throw new Error("Missing 'query' (or 'q') parameter")
 
-      // Build proper SearxNG JSON endpoint: /search?format=json&q=...
-      const url = new URL('/search', searxBase.endsWith('/') ? searxBase : `${searxBase}/`)
-      url.searchParams.set('format', 'json')
-      url.searchParams.set('q', query)
-
+      const url = this.buildSearchUrl(searxBase, query)
       const response = await fetch(url.toString())
-      const ct = response.headers.get('content-type') || ''
-
-      if (!response.ok) {
-        const body = await response.text().catch(() => '')
-        throw new Error(
-          `SEAR-NX search failed: ${response.status} ${response.statusText}${ct.includes('html') ? ' (HTML response)' : ''} ${body ? `- body: ${body.substring(0, 200)}` : ''}`
-        )
-      }
-
-      if (!ct.includes('application/json')) {
-        const preview = await response.text().catch(() => '')
-        throw new Error(`Expected JSON but got '${ct}'. Preview: ${preview.substring(0, 160)}`)
-      }
+      this.validateResponse(response)
 
       const data = await response.json()
 
@@ -76,6 +60,29 @@ export class SearchRunTool extends StructuredTool {
         error: `Search failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         results: [],
       })
+    }
+  }
+
+  private buildSearchUrl(searxBase: string, query: string): URL {
+    const url = new URL('/search', searxBase.endsWith('/') ? searxBase : `${searxBase}/`)
+    url.searchParams.set('format', 'json')
+    url.searchParams.set('q', query)
+    return url
+  }
+
+  private async validateResponse(response: Response): Promise<void> {
+    const ct = response.headers.get('content-type') || ''
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => '')
+      throw new Error(
+        `SEAR-NX search failed: ${response.status} ${response.statusText}${ct.includes('html') ? ' (HTML response)' : ''} ${body ? `- body: ${body.substring(0, 200)}` : ''}`
+      )
+    }
+
+    if (!ct.includes('application/json')) {
+      const preview = await response.text().catch(() => '')
+      throw new Error(`Expected JSON but got '${ct}'. Preview: ${preview.substring(0, 160)}`)
     }
   }
 }
