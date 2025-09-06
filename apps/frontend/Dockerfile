@@ -14,12 +14,7 @@ FROM base AS builder
 COPY package.json turbo.json tsconfig.base.json ./
 
 # Copy all package.json files for dependency resolution
-COPY packages/agents/package.json ./packages/agents/
-COPY packages/core/package.json ./packages/core/
-COPY packages/llm/package.json ./packages/llm/
-COPY packages/memory/package.json ./packages/memory/
-COPY packages/shared/package.json ./packages/shared/
-COPY packages/tools/package.json ./packages/tools/
+COPY packages/agent-langchain/package.json ./packages/agent-langchain/
 COPY apps/backend/package.json ./apps/backend/
 COPY apps/frontend/package.json ./apps/frontend/
 

@@ -12,7 +12,6 @@
     "lint:fix": "biome check --write ."
   },
   "dependencies": {
-    "@scout/memory": "^0.1.0",
     "@langchain/core": "0.3.70",
     "@langchain/community": "0.2.31",
     "@langchain/openai": "0.6.11",
@@ -23,6 +22,7 @@
     "@mozilla/readability": "0.5.0"
   },
   "devDependencies": {
+    "@types/jsdom": "^21.1.6",
     "@types/node": "^20.0.0",
     "typescript": "^5.0.0"
   }
