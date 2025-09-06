@@ -1,8 +1,6 @@
 # Scout
 
 [![CI](https://github.com/brs999/scout/actions/workflows/ci.yml/badge.svg)](https://github.com/brs999/scout/actions/workflows/ci.yml)
-[![Lint and Format](https://github.com/brs999/scout/actions/workflows/ci.yml/badge.svg)](https://github.com/brs999/scout/actions/workflows/ci.yml)
-[![Docker Build](https://github.com/brs999/scout/actions/workflows/ci.yml/badge.svg)](https://github.com/brs999/scout/actions/workflows/ci.yml)
 
 A modern, TypeScript-based AI agent system using a monorepo architecture with Node.js and Biome.
 
@@ -67,9 +65,18 @@ cd scout
 npm install
 ```
 
-2. **Start services**:
+2. **Environment Configuration**:
 ```bash
-Rename .env.example to .env
+# Copy the environment template
+cp .env.example .env
+
+# Edit .env with your configuration
+# Required: LMSTUDIO_URL and LOCAL_MODEL for LLM integration
+# Optional: OPENAI_API_KEY if using OpenAI instead of LM Studio
+```
+
+3. **Start services**:
+```bash
 # Start Docker services (reuses original SearX)
 cd docker
 docker-compose up -d
@@ -78,7 +85,7 @@ docker-compose up -d
 ./start-services.sh
 ```
 
-3. **Development**:
+4. **Development**:
 ```bash
 # Start all packages in development mode
 npm run dev

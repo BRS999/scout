@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# AgenticSeek Docker Launcher
+# Scout Docker Launcher
 # This script launches the Docker setup from the docker/ directory
 
-echo "🚀 Starting AgenticSeek with Docker..."
+echo "🚀 Starting Scout with Docker..."
 echo ""
 
 # Change to docker directory and run the startup script

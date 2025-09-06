@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# AgenticSeek Docker Startup Script
+# Scout Docker Startup Script
 
 set -e
 
-echo "🚀 Starting AgenticSeek with Docker..."
+echo "🚀 Starting Scout with Docker..."
 echo ""
 
 # Check if Docker is running
@@ -37,8 +37,8 @@ echo ""
 echo "🔍 Service Status:"
 echo "  📊 Redis:        http://localhost:6379"
 echo "  🔎 SearxNG:      http://localhost:8080"
-echo "  🚀 Backend API:  http://localhost:7777"
-echo "  🌐 Frontend:     http://localhost:3000"
+echo "  🚀 Backend API:  http://localhost:8777"
+echo "  🌐 Frontend:     http://localhost:3001"
 echo ""
 echo "⏳ Waiting for services to be ready..."
 
@@ -46,7 +46,7 @@ echo "⏳ Waiting for services to be ready..."
 echo "Waiting for backend to be ready..."
 timeout=120
 counter=0
-while ! curl -f http://localhost:7777/health > /dev/null 2>&1; do
+while ! curl -f http://localhost:8777/health > /dev/null 2>&1; do
     if [ $counter -ge $timeout ]; then
         echo "❌ Backend failed to start within ${timeout} seconds"
         echo "Check the logs with: docker-compose logs backend"
@@ -64,7 +64,7 @@ echo ""
 # Wait for frontend to be ready
 echo "Waiting for frontend to be ready..."
 counter=0
-while ! curl -f http://localhost:3000 > /dev/null 2>&1; do
+while ! curl -f http://localhost:3001 > /dev/null 2>&1; do
     if [ $counter -ge 60 ]; then
         echo "⚠️  Frontend might still be building..."
         break
@@ -75,9 +75,9 @@ while ! curl -f http://localhost:3000 > /dev/null 2>&1; do
 done
 
 echo ""
-echo "🎉 AgenticSeek is now running!"
+echo "🎉 Scout is now running!"
 echo ""
-echo "🌐 Open your browser to: http://localhost:3000"
+echo "🌐 Open your browser to: http://localhost:3001"
 echo ""
 echo "📋 Useful commands:"
 echo "  📊 View logs:       docker-compose logs -f"

@@ -76,7 +76,14 @@
       "yarn.lock",
       "**/dist/**",
       "**/build/**",
-      "**/shared/src/**/*.js"
+      "**/shared/src/**/*.js",
+      "**/packages/memory/src/*.js",
+      "**/packages/shared/src/*.js",
+      "**/packages/tools/src/*.js",
+      "**/packages/agents/src/*.js",
+      "**/packages/core/src/*.js",
+      "**/packages/llm/src/*.js",
+      "**/packages/agent-langchain/src/*.js"
     ]
   },
   "overrides": [

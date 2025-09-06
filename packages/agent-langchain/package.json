@@ -1,0 +1,29 @@
+{
+  "name": "@scout/agent-langchain",
+  "version": "0.1.0",
+  "description": "LangChain.js-powered agent for Scout",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write ."
+  },
+  "dependencies": {
+    "@langchain/core": "0.3.70",
+    "@langchain/community": "0.2.31",
+    "@langchain/openai": "0.6.11",
+    "langchain": "0.3.29",
+    "openai": "4.67.3",
+    "zod": "3.23.8",
+    "jsdom": "24.1.1",
+    "@mozilla/readability": "0.5.0"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^21.1.6",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

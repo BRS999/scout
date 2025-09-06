@@ -18,8 +18,8 @@ cd docker && ./start-docker.sh
 ```
 
 That's it! The entire system will be running at:
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:7777
+- **Frontend**: http://localhost:3001
+- **Backend API** (host): http://localhost:8777
 - **SearxNG Search**: http://localhost:8080
 
 ## 🏗️ Architecture
@@ -30,7 +30,7 @@ The Docker setup includes:
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Frontend      │    │   Backend       │    │   SearxNG       │
 │   (Next.js)     │◄──►│   (Fastify)     │◄──►│   (Search)      │
-│   Port: 3000    │    │   Port: 7777    │    │   Port: 8080    │
+│   Port: 3001    │    │   Port: 7777    │    │   Port: 8080    │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
                               │                        │
                               ▼                        ▼
@@ -131,13 +131,13 @@ SEARXNG_SECRET_KEY=your-secret-key-here
 # LLM Studio Configuration
 LLM_STUDIO_BASE_URL=http://localhost:1234/v1
 
-# Backend Configuration
+# Backend Configuration (container)
 NODE_ENV=production
 PORT=7777
 HOST=0.0.0.0
 
-# Frontend Configuration
-NEXT_PUBLIC_BACKEND_URL=http://localhost:7777
+# Frontend Configuration (host access to backend)
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8777
 ```
 
 ## 🚦 Usage
@@ -205,7 +205,7 @@ cd docker
 docker-compose logs frontend
 
 # Verify backend connectivity
-curl http://localhost:7777/health
+curl http://localhost:8777/health
 ```
 
 ### LLM Not Working
@@ -235,7 +235,7 @@ docker-compose down
 ### Health Checks
 ```bash
 # Backend health
-curl http://localhost:7777/health
+curl http://localhost:8777/health
 
 # Frontend health
 curl http://localhost:3000
@@ -244,7 +244,7 @@ curl http://localhost:3000
 ### API Testing
 ```bash
 # Test chat functionality
-curl -X POST http://localhost:7777/query \
+curl -X POST http://localhost:8777/query \
   -H "Content-Type: application/json" \
   -d '{"query": "Hello, how are you?"}'
 ```

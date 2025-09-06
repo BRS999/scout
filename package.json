@@ -13,11 +13,22 @@
     "clean": "turbo clean",
     "type-check": "turbo type-check"
   },
+  "dependencies": {
+    "langchain": "0.3.29",
+    "@langchain/core": "0.3.70",
+    "@langchain/community": "0.2.31",
+    "@langchain/openai": "0.6.11",
+    "openai": "4.67.3",
+    "zod": "3.23.8",
+    "jsdom": "24.1.1",
+    "@mozilla/readability": "0.5.0"
+  },
   "devDependencies": {
     "@biomejs/biome": "^1.5.0",
     "@types/node": "^24.3.1",
     "turbo": "^1.10.0",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "tsx": "^4.x"
   },
   "engines": {
     "node": ">=18.0.0",

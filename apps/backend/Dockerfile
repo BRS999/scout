@@ -14,24 +14,19 @@ FROM base AS builder
 COPY package.json turbo.json tsconfig.base.json ./
 
 # Copy all package.json files for dependency resolution
-COPY packages/agents/package.json ./packages/agents/
-COPY packages/core/package.json ./packages/core/
-COPY packages/llm/package.json ./packages/llm/
-COPY packages/memory/package.json ./packages/memory/
-COPY packages/shared/package.json ./packages/shared/
-COPY packages/tools/package.json ./packages/tools/
+COPY packages/agent-langchain/package.json ./packages/agent-langchain/
 COPY apps/backend/package.json ./apps/backend/
 COPY apps/frontend/package.json ./apps/frontend/
 
-# Install dependencies (workspace-aware) 
-# Use npm install instead of ci due to workspace dependency issues
-RUN npm install
+# Install dependencies (workspace-aware)
+# Use legacy peer deps to resolve LangChain dependency conflicts
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .
 
 # Build using turbo (builds dependencies in correct order)
-RUN turbo build --filter=@scout/backend
+RUN turbo build --scope=@scout/backend --include-dependencies
 
 FROM base AS runner
 
@@ -42,19 +37,13 @@ RUN addgroup --system --gid 1001 nodejs && \
 
 # Copy built application and dependencies
 COPY --from=builder --chown=agenticseek:nodejs /app/apps/backend/dist ./apps/backend/dist
-COPY --from=builder --chown=agenticseek:nodejs /app/packages/shared/dist ./packages/shared/dist
-COPY --from=builder --chown=agenticseek:nodejs /app/packages/tools/dist ./packages/tools/dist
-COPY --from=builder --chown=agenticseek:nodejs /app/packages/memory/dist ./packages/memory/dist
-COPY --from=builder --chown=agenticseek:nodejs /app/packages/agents/dist ./packages/agents/dist
-COPY --from=builder --chown=agenticseek:nodejs /app/packages/core/dist ./packages/core/dist
+COPY --from=builder --chown=agenticseek:nodejs /app/packages/agent-langchain/dist ./packages/agent-langchain/dist
 COPY --from=builder --chown=agenticseek:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=agenticseek:nodejs /app/package.json ./
+# Copy environment file
+COPY --from=builder --chown=agenticseek:nodejs /app/.env ./
 # Copy package.json files for workspace resolution
-COPY --from=builder --chown=agenticseek:nodejs /app/packages/shared/package.json ./packages/shared/
-COPY --from=builder --chown=agenticseek:nodejs /app/packages/tools/package.json ./packages/tools/
-COPY --from=builder --chown=agenticseek:nodejs /app/packages/memory/package.json ./packages/memory/
-COPY --from=builder --chown=agenticseek:nodejs /app/packages/agents/package.json ./packages/agents/
-COPY --from=builder --chown=agenticseek:nodejs /app/packages/core/package.json ./packages/core/
+COPY --from=builder --chown=agenticseek:nodejs /app/packages/agent-langchain/package.json ./packages/agent-langchain/
 
 USER agenticseek
 

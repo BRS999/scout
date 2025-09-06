@@ -39,12 +39,17 @@ export function ChatArea() {
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:7777'
-      const response = await fetch(`${backendUrl}/query`, {
+      const response = await fetch(`${backendUrl}/api/agent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query: input.trim() }),
+        body: JSON.stringify({
+          messages: [
+            ...messages.map((m) => ({ role: m.role, content: m.content })),
+            { role: 'user', content: input.trim() },
+          ],
+        }),
       })
 
       const data = await response.json()
@@ -52,7 +57,7 @@ export function ChatArea() {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.result?.answer || 'Sorry, I encountered an error.',
+        content: data.content || 'Sorry, I encountered an error.',
         timestamp: new Date(),
       }
 
