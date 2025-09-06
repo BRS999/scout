@@ -17,6 +17,7 @@ COPY package.json turbo.json tsconfig.base.json ./
 COPY packages/agents/package.json ./packages/agents/
 COPY packages/core/package.json ./packages/core/
 COPY packages/llm/package.json ./packages/llm/
+COPY packages/memory/package.json ./packages/memory/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/tools/package.json ./packages/tools/
 COPY apps/backend/package.json ./apps/backend/
@@ -35,11 +36,11 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build using turbo (builds dependencies in correct order)
-RUN turbo build --filter=frontend
+RUN turbo build --filter=@agentic-seek/frontend
 
 FROM base AS runner
 
-WORKDIR /app
+WORKDIR /app/apps/frontend
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -48,9 +49,12 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copy built application
+# Copy the standalone server bundle to the same paths it was built with
 COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/public ./public
+# Important: static assets must live alongside server.js under apps/frontend/.next
+COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/.next/static ./apps/frontend/.next/static
+# Public assets (if needed by runtime)
+COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/public ./apps/frontend/public
 
 USER nextjs
 
@@ -58,6 +62,10 @@ EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+
+# Healthcheck to ensure server is accepting requests
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:3000/ || exit 1
 
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/next-config-js/output

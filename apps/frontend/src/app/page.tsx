@@ -2,6 +2,7 @@
 
 import { ChatArea } from '@/components/ChatArea'
 import { RightPane } from '@/components/RightPane'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { useState } from 'react'
 
 export default function Home() {
@@ -20,6 +21,11 @@ export default function Home() {
           <RightPane onClose={() => setIsRightPaneOpen(false)} />
         </div>
       )}
+
+      {/* Theme Toggle */}
+      <div className="fixed top-4 left-4 z-50">
+        <ThemeToggle />
+      </div>
 
       {/* Toggle Right Pane Button */}
       {!isRightPaneOpen && (

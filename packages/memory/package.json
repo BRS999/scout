@@ -1,0 +1,38 @@
+{
+  "name": "@agentic-seek/memory",
+  "version": "0.1.0",
+  "description": "Memory management system with vector and structured storage",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "test": "jest",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format .",
+    "format:write": "biome format --write ."
+  },
+  "dependencies": {
+    "@agentic-seek/shared": "*",
+    "chromadb": "^1.8.1",
+    "sqlite3": "^5.1.6",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/uuid": "^9.0.7",
+    "typescript": "^5.0.0"
+  },
+  "files": ["dist"],
+  "keywords": ["memory", "vector-store", "knowledge-base", "research"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/agentic-seek-ts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/agentic-seek-ts/issues"
+  },
+  "homepage": "https://github.com/your-org/agentic-seek-ts#readme"
+}

@@ -1,10 +1,13 @@
 import { type Tool, type ToolResult, ToolType } from '@agentic-seek/shared'
+import { ReadabilityParser, type ParsedContent } from '../content-parser/readability-parser'
 
 export interface ScrapingOptions {
   url: string
   query?: string
   includeImages?: boolean
   maxContentLength?: number
+  storeInMemory?: boolean
+  sessionId?: string
 }
 
 export class WebScraping implements Tool {
@@ -31,16 +34,21 @@ export class WebScraping implements Tool {
         throw new Error('Valid URL is required')
       }
 
-      const content = await this.scrapePage(url, query)
-      const processedContent = this.processContent(content, maxContentLength, query)
+      const parsedContent = await this.scrapePage(url, query)
+      const processedContent = this.processContent(parsedContent.textContent, maxContentLength, query)
 
       return {
         success: true,
         output: {
           url,
+          title: parsedContent.title,
           content: processedContent,
+          textContent: parsedContent.textContent,
           extractedAt: new Date().toISOString(),
-          wordCount: processedContent.split(/\s+/).length,
+          wordCount: parsedContent.metadata.word_count || processedContent.split(/\s+/).length,
+          author: parsedContent.metadata.source_author,
+          publishedTime: parsedContent.metadata.source_published,
+          metadata: parsedContent.metadata,
         },
         executionTime: Date.now() - startTime,
       }
@@ -83,7 +91,7 @@ export class WebScraping implements Tool {
     }
   }
 
-  private async scrapePage(url: string, query?: string): Promise<string> {
+  private async scrapePage(url: string, query?: string): Promise<ParsedContent> {
     try {
       const response = await fetch(url, {
         method: 'GET',
@@ -103,13 +111,13 @@ export class WebScraping implements Tool {
       }
 
       const html = await response.text()
-      return this.extractTextFromHtml(html)
+      return await ReadabilityParser.parseHtml(html, url)
     } catch (error) {
       console.error('Scraping error:', error)
 
       // Fallback to mock content for development
       if (process.env.NODE_ENV === 'development') {
-        return this.getMockContent(url, query)
+        return this.getMockParsedContent(url, query)
       }
 
       throw error
@@ -187,11 +195,10 @@ export class WebScraping implements Tool {
       : content.substring(0, 1000) // Fallback to first part of content
   }
 
-  private getMockContent(url: string, query?: string): string {
+  private getMockParsedContent(url: string, query?: string): ParsedContent {
     const domain = new URL(url).hostname
     const topic = query || 'general information'
-
-    return `This is mock content extracted from ${domain} about ${topic}.
+    const mockText = `This is mock content extracted from ${domain} about ${topic}.
 
     The page contains information related to your search query. In a real implementation,
     this would be the actual text content extracted from the web page using HTML parsing
@@ -204,5 +211,37 @@ export class WebScraping implements Tool {
     • Contact information or next steps
 
     This mock content helps demonstrate the web scraping functionality during development.`
+
+    return {
+      title: `${topic} - ${domain}`,
+      content: `<article>${mockText}</article>`,
+      textContent: mockText,
+      length: mockText.length,
+      excerpt: mockText.substring(0, 200) + '...',
+      lang: 'en',
+      metadata: {
+        source_url: url,
+        source_title: `${topic} - ${domain}`,
+        source_domain: domain,
+        word_count: mockText.split(/\s+/).length,
+        language: 'en',
+        chunk_type: 'article'
+      }
+    }
   }
+}
+
+// Convenience function for direct use
+export async function webScraping(
+  url: string,
+  options: { query?: string; maxContentLength?: number } = {}
+): Promise<any> {
+  const scraper = new WebScraping()
+  const result = await scraper.execute({ url, ...options })
+  
+  if (!result.success) {
+    throw new Error(result.error || 'Web scraping failed')
+  }
+  
+  return result.output
 }

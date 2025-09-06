@@ -2,7 +2,7 @@
   "name": "@agentic-seek/core",
   "version": "0.1.0",
   "description": "Core business logic for AgenticSeek",
-  "main": "dist/index.js",
+  "main": "dist/core/src/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",

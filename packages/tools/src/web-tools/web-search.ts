@@ -292,3 +292,19 @@ export class WebSearch implements Tool {
     ]
   }
 }
+
+// Convenience function for direct use
+export async function webSearch(
+  query: string, 
+  options: { num_results?: number; searxng_url?: string } = {}
+): Promise<SearchResult[]> {
+  const searcher = new WebSearch(options.searxng_url)
+  const result = await searcher.execute(query)
+  
+  if (!result.success) {
+    throw new Error(result.error || 'Web search failed')
+  }
+  
+  const results = result.output as SearchResult[]
+  return options.num_results ? results.slice(0, options.num_results) : results
+}

@@ -47,6 +47,26 @@ services:
     networks:
       - agentic-seek-net
 
+  chromadb:
+    container_name: agentic-seek-chromadb
+    image: ghcr.io/chroma-core/chroma:latest
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - CHROMA_SERVER_AUTH_ENABLED=false
+      - PERSIST_DIRECTORY=/chroma
+    volumes:
+      - chroma-data:/chroma
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - agentic-seek-net
+
   backend:
     container_name: agentic-seek-backend
     build:
@@ -55,16 +75,22 @@ services:
     restart: unless-stopped
     ports:
       - "7777:7777"
+    env_file:
+      - ../.env
     environment:
       - NODE_ENV=production
       - PORT=7777
       - HOST=0.0.0.0
-      - LLM_STUDIO_BASE_URL=http://host.docker.internal:1234/v1
       - SEARXNG_BASE_URL=http://searxng:8080
+      - CHROMADB_URL=http://chromadb:8000
+      - SQLITE_PATH=/data/memory.db
     depends_on:
       - searxng
+      - chromadb
     networks:
       - agentic-seek-net
+    volumes:
+      - backend-data:/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7777/health"]
       interval: 30s
@@ -80,17 +106,51 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    env_file:
+      - ../.env
     environment:
       - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
       - NEXT_PUBLIC_BACKEND_URL=http://backend:7777
     depends_on:
       - backend
     networks:
       - agentic-seek-net
-
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 50s
+  
 volumes:
   redis-data:
+  backend-data:
+  chroma-data:
 
 networks:
   agentic-seek-net:
     driver: bridge
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  

@@ -220,3 +220,61 @@ export class TimeoutError extends AgenticSeekError {
     this.name = 'TimeoutError'
   }
 }
+
+// Research Agent types
+export interface ResearchQuery {
+  question: string
+  description?: string
+  tags?: string[]
+  require_recent?: boolean
+  depth?: 'shallow' | 'medium' | 'deep'
+  sources?: string[] // Preferred sources to search
+}
+
+export interface ResearchResult {
+  query: string
+  answer: string
+  sources: string[]
+  confidence: number
+  session_id: string
+  memory_used: boolean
+  new_sources_found: number
+  chunks_stored: number
+  metadata?: {
+    search_time_ms?: number
+    synthesis_time_ms?: number
+    total_chunks_analyzed?: number
+  }
+}
+
+// Base agent types
+export interface AgentConfig {
+  id?: string
+  name?: string
+  llm?: {
+    provider?: string
+    model?: string
+    temperature?: number
+  }
+  tools?: string[]
+  memory?: boolean
+}
+
+export interface AgentState {
+  status: 'idle' | 'running' | 'completed' | 'error'
+  current_task?: string
+  progress?: number
+  metadata?: Record<string, any>
+}
+
+// Re-export memory types for convenience
+export type { 
+  ContentChunk,
+  ChunkMetadata, 
+  MemoryMatch,
+  MemoryConfig,
+  MemoryStats,
+  ResearchSession,
+  VectorSearchOptions,
+  MemoryUpsertOptions
+} from '@agentic-seek/memory'

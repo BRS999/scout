@@ -2,6 +2,7 @@ import cors from '@fastify/cors'
 import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify'
 import { OpenAI } from 'openai'
 import { WebSearch } from '@agentic-seek/tools'
+import { ResearchAgent } from '@agentic-seek/agents'
 
 // Define types
 interface LLMMessage {
@@ -465,7 +466,7 @@ class SimpleLLMProvider {
       }
 
       const completion = (await this.client.chat.completions.create({
-        model: options.model || 'gpt-oss',
+        model: options.model || process.env.LLM_STUDIO_MODEL || 'gpt-oss',
         messages: messages.map((msg) => ({
           role: msg.role,
           content: msg.content,
@@ -569,6 +570,15 @@ const llmProvider = new SimpleLLMProvider(
 // Initialize agents
 const coderAgent = new CoderAgent()
 const browserAgent = new BrowserAgent()
+const researchAgent = new ResearchAgent({
+  search: {
+    searxng_url: process.env.SEARXNG_BASE_URL || 'http://localhost:8080',
+    max_results: 10
+  },
+  memory: {
+    sqlite_path: './data/research_memory.db'
+  }
+})
 
 // Register tools with agents
 coderAgent.addTool(pythonExecutor)
@@ -712,9 +722,114 @@ fastify.post('/tools/file-finder', async (_request: FastifyRequest, _reply: Fast
   }
 })
 
+// Research endpoint
+fastify.post('/research', async (request: FastifyRequest, reply: FastifyReply) => {
+  const { question, description, tags, require_recent, depth } = request.body as {
+    question: string
+    description?: string
+    tags?: string[]
+    require_recent?: boolean
+    depth?: 'shallow' | 'medium' | 'deep'
+  }
+
+  if (!question) {
+    return reply.code(400).send({ error: 'Question is required' })
+  }
+
+  try {
+    const startTime = Date.now()
+    
+    // Perform research using the research agent
+    const result = await researchAgent.research({
+      question,
+      description,
+      tags,
+      require_recent,
+      depth
+    })
+
+    const executionTime = Date.now() - startTime
+
+    return {
+      id: generateId(),
+      question,
+      result: {
+        answer: result.answer,
+        sources: result.sources,
+        confidence: result.confidence,
+        session_id: result.session_id,
+        memory_used: result.memory_used,
+        new_sources_found: result.new_sources_found,
+        chunks_stored: result.chunks_stored,
+        metadata: {
+          ...result.metadata,
+          total_execution_time: executionTime
+        }
+      },
+      timestamp: new Date().toISOString(),
+    }
+  } catch (error) {
+    console.error('Research processing error:', error)
+    return reply.code(500).send({
+      error: 'Research failed',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    })
+  }
+})
+
+// Research session endpoints
+fastify.get('/research/sessions', async (_request: FastifyRequest, _reply: FastifyReply) => {
+  try {
+    const sessions = await researchAgent.getSessionHistory(20)
+    return {
+      sessions,
+      count: sessions.length
+    }
+  } catch (error) {
+    console.error('Failed to get research sessions:', error)
+    return {
+      sessions: [],
+      count: 0,
+      error: 'Failed to load sessions'
+    }
+  }
+})
+
+fastify.get('/research/stats', async (_request: FastifyRequest, _reply: FastifyReply) => {
+  try {
+    const stats = await researchAgent.getMemoryStats()
+    return {
+      memory_stats: stats,
+      timestamp: new Date().toISOString()
+    }
+  } catch (error) {
+    console.error('Failed to get memory stats:', error)
+    return {
+      memory_stats: {
+        total_chunks: 0,
+        total_sessions: 0,
+        total_sources: 0,
+        storage_size_mb: 0,
+        oldest_chunk: new Date(),
+        newest_chunk: new Date()
+      },
+      error: 'Failed to load stats'
+    }
+  }
+})
+
 // Start server
 const start = async () => {
   try {
+    // Initialize research agent
+    try {
+      await researchAgent.initialize()
+      console.log('✅ Research agent initialized successfully')
+    } catch (error) {
+      console.warn('⚠️ Research agent initialization failed:', error)
+      console.warn('Research functionality will be limited')
+    }
+
     const port = process.env.PORT || 7777
     await fastify.listen({ port: Number(port), host: '0.0.0.0' })
     console.log(`🚀 AgenticSeek API server listening on port ${port}`)
