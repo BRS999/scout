@@ -2,9 +2,9 @@ import { v4 as uuidv4 } from 'uuid'
 import type { ContentChunk, MemoryMatch, VectorSearchOptions } from './types'
 
 export class VectorStore {
-  private client: any
+  private client: import('chromadb').ChromaClient | null = null
   private collectionName: string
-  private collection: any = null
+  private collection: import('chromadb').Collection | { mock: boolean } | null = null
   private chromaUrl: string
   private useMock: boolean
 
@@ -49,20 +49,25 @@ export class VectorStore {
     if (this.useMock) {
       return this.getMockSearchResults(options.query, options.k || 5)
     }
+
+    if ('mock' in this.collection!) {
+      return this.getMockSearchResults(options.query, options.k || 5)
+    }
+
     const k = options.k || 5
     const queryEmbedding = await this.generateEmbedding(options.query)
 
-    const result = await this.collection.query({
+    const result = await (this.collection as import('chromadb').Collection).query({
       queryEmbeddings: [queryEmbedding],
       nResults: k,
-      where: options.filter || undefined,
+      where: (options.filter as import('chromadb').Where) || undefined,
       include: ['metadatas', 'documents', 'distances'],
     })
 
     const matches: MemoryMatch[] = []
     const ids = (result.ids?.[0] || []) as string[]
     const documents = (result.documents?.[0] || []) as string[]
-    const metadatas = (result.metadatas?.[0] || []) as any[]
+    const metadatas = (result.metadatas?.[0] || []) as Record<string, unknown>[]
     const distances = (result.distances?.[0] || []) as number[]
 
     for (let i = 0; i < ids.length; i++) {
@@ -76,8 +81,8 @@ export class VectorStore {
           id: ids[i],
           text: doc,
           metadata: this.normalizeMetadata(meta),
-          createdAt: meta.createdAt ? new Date(meta.createdAt) : new Date(),
-          updatedAt: meta.updatedAt ? new Date(meta.updatedAt) : new Date(),
+          createdAt: meta.createdAt ? new Date(meta.createdAt as string) : new Date(),
+          updatedAt: meta.updatedAt ? new Date(meta.updatedAt as string) : new Date(),
         },
         similarity_score: similarity,
         rank: i + 1,
@@ -93,7 +98,7 @@ export class VectorStore {
       await this.initialize()
     }
     if (!chunks.length) return
-    if (this.useMock) {
+    if (this.useMock || 'mock' in this.collection!) {
       return
     }
 
@@ -106,7 +111,12 @@ export class VectorStore {
     )
     const metadatas = chunks.map((c) => this.prepareMetadata(c))
 
-    await this.collection.add({ ids, documents, embeddings, metadatas })
+    await (this.collection as import('chromadb').Collection).add({
+      ids,
+      documents,
+      embeddings,
+      metadatas: metadatas as unknown as import('chromadb').Metadata[],
+    })
   }
 
   async delete(chunkIds: string[]): Promise<void> {
@@ -114,15 +124,18 @@ export class VectorStore {
       await this.initialize()
     }
     if (!chunkIds.length) return
-    if (this.useMock) return
-    await this.collection.delete({ ids: chunkIds })
+    if (this.useMock || 'mock' in this.collection!) return
+    await (this.collection as import('chromadb').Collection).delete({ ids: chunkIds })
   }
 
   async getStats(): Promise<{ count: number; collection_name: string }> {
     if (!this.collection) {
       await this.initialize()
     }
-    const count = this.useMock ? 0 : await this.collection.count()
+    const count =
+      this.useMock || 'mock' in this.collection!
+        ? 0
+        : await (this.collection as import('chromadb').Collection).count()
     return { count, collection_name: this.collectionName }
   }
 
@@ -154,10 +167,10 @@ export class VectorStore {
     }
   }
 
-  private normalizeMetadata(meta: any) {
+  private normalizeMetadata(meta: Record<string, unknown>) {
     const m = { ...(meta || {}) }
     if (m.tags && Array.isArray(m.tags)) {
-      m.tags = m.tags.map((t: any) => String(t))
+      m.tags = m.tags.map((t: unknown) => String(t))
     }
     return m
   }
@@ -167,8 +180,8 @@ export class VectorStore {
       await this.initialize()
     }
     if (this.useMock) return
-    await this.client.deleteCollection({ name: this.collectionName })
-    this.collection = await this.client.getOrCreateCollection({ name: this.collectionName })
+    await this.client!.deleteCollection({ name: this.collectionName })
+    this.collection = await this.client!.getOrCreateCollection({ name: this.collectionName })
   }
 
   // Mock search results helper

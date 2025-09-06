@@ -220,7 +220,7 @@ export class ResearchAgent {
         const scrapedData = await webScraping(result.url)
 
         // Parse with Readability for clean content
-        const parsedContent = await readabilityParser(scrapedData.content)
+        const parsedContent = await readabilityParser(scrapedData.output)
 
         // Store the content with metadata for chunking
         const contentChunks = await this.memory.upsert(parsedContent.textContent, {

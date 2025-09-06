@@ -33,7 +33,6 @@ class WebScraping {
   }
 }
 
-
 class BrowserAgent {
   name = 'Browser Agent'
   tools: Tool[] = []
@@ -362,7 +361,7 @@ class SimpleLLMProvider {
     this.searxngTool = searxngTool
   }
 
-  async chat(messages: any[], options: any = {}) {
+  async chat(messages: LLMMessage[], options: Record<string, unknown> = {}) {
     try {
       // Check if the query needs web search
       const lastMessage = messages[messages.length - 1]
@@ -384,15 +383,18 @@ class SimpleLLMProvider {
       }
 
       const completion = (await this.client.chat.completions.create({
-        model: options.model || process.env.LLM_STUDIO_MODEL || 'gpt-oss',
+        model: (options.model || process.env.LLM_STUDIO_MODEL || 'gpt-3.5-turbo') as any,
         messages: messages.map((msg) => ({
           role: msg.role,
           content: msg.content,
         })),
-        temperature: options.temperature || 0.7,
-        max_tokens: options.maxTokens || 4096,
+        temperature: (options.temperature || 0.7) as any,
+        max_tokens: (options.maxTokens || 4096) as any,
         stream: false,
-      })) as any
+      })) as {
+        choices: { message?: { content?: string }; finish_reason?: string }[]
+        usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+      }
 
       const choice = completion.choices[0]
       if (!choice) {
@@ -452,7 +454,7 @@ Return only the search query, no explanations.`
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.3,
         max_tokens: 50,
-      })) as any
+      })) as { choices: { message?: { content?: string } }[] }
 
       return response.choices[0]?.message?.content?.trim() || userQuery
     } catch (_error) {
@@ -460,10 +462,12 @@ Return only the search query, no explanations.`
     }
   }
 
-  private formatSearchResults(searchResults: any): string {
+  private formatSearchResults(searchResults: {
+    results: Array<{ rank: number; title: string; snippet: string; url: string }>
+  }): string {
     return searchResults.results
       .map(
-        (result: any) =>
+        (result: { rank: number; title: string; snippet: string; url: string }) =>
           `${result.rank}. ${result.title}\n   ${result.snippet}\n   Source: ${result.url}`
       )
       .join('\n\n')
@@ -586,11 +590,11 @@ fastify.post('/query', async (request: FastifyRequest, reply: FastifyReply) => {
       'library',
     ]
 
-    const isCodingQuery = codingKeywords.some((keyword) => lowerQuery.includes(keyword))
+    const _isCodingQuery = codingKeywords.some((keyword) => lowerQuery.includes(keyword))
 
     // Use ResearchAgent for research queries, BrowserAgent for general queries
     if (needsSearch) {
-      selectedAgent = researchAgent as any // Temporary type assertion
+      selectedAgent = researchAgent as unknown as BrowserAgent // Temporary type assertion
     }
 
     const result = await selectedAgent.process(query)
@@ -604,15 +608,25 @@ fastify.post('/query', async (request: FastifyRequest, reply: FastifyReply) => {
         agent: result.agentName,
         success: result.success,
         executionTime: result.executionTime,
-        blocks: result.blocks.map((block: any) => ({
-          id: block.id,
-          type: block.type,
-          language: block.language,
-          content: block.content,
-          output: block.output,
-          error: block.error,
-          success: block.success,
-        })),
+        blocks: result.blocks?.map(
+          (block: {
+            id?: string
+            type?: string
+            language?: string
+            content?: string
+            output?: string
+            error?: string
+            success?: boolean
+          }) => ({
+            id: block.id,
+            type: block.type,
+            language: block.language,
+            content: block.content,
+            output: block.output,
+            error: block.error,
+            success: block.success,
+          })
+        ),
       },
       timestamp: new Date().toISOString(),
     }

@@ -166,7 +166,18 @@ export class StructuredStore {
         SELECT * FROM research_sessions WHERE id = ?
       `,
         [sessionId],
-        (error, row: any) => {
+        (
+          error: Error | null,
+          row?: {
+            id: string
+            query: string
+            description: string
+            created_at: string
+            updated_at: string
+            tags: string
+            status: string
+          }
+        ) => {
           if (error) {
             reject(new Error(`Failed to get session: ${error.message}`))
           } else if (!row) {
@@ -180,8 +191,8 @@ export class StructuredStore {
               updated_at: new Date(row.updated_at),
               chunk_ids: [], // Will be populated by separate query
               source_urls: [], // Will be populated by separate query
-              tags: row.tags ? JSON.parse(row.tags) : [],
-              status: row.status,
+              tags: row.tags ? (JSON.parse(row.tags) as string[]) : [],
+              status: row.status as 'active' | 'completed' | 'archived',
             }
             resolve(session)
           }
@@ -268,7 +279,7 @@ export class StructuredStore {
             `)
               linkStmt.run(
                 [sessionId, chunk.id, chunk.metadata.relevance_score || 0.0],
-                (linkError: any) => {
+                (linkError: Error | null) => {
                   if (linkError) {
                     reject(new Error(`Failed to link chunk to session: ${linkError.message}`))
                   } else {
@@ -329,21 +340,38 @@ export class StructuredStore {
         ORDER BY sc.relevance_score DESC, c.created_at ASC
       `,
         [sessionId],
-        (error, rows: any[]) => {
+        (
+          error: Error | null,
+          rows: {
+            id: string
+            text: string
+            metadata: string
+            created_at: string
+            updated_at: string
+          }[]
+        ) => {
           if (error) {
             reject(new Error(`Failed to get session chunks: ${error.message}`))
           } else {
-            const chunks: ContentChunk[] = rows.map((row) => ({
-              id: row.id,
-              text: row.text,
-              metadata: {
-                ...JSON.parse(row.metadata || '{}'),
-                source_url: row.source_url,
-                relevance_score: row.relevance_score,
-              },
-              createdAt: new Date(row.created_at),
-              updatedAt: new Date(row.updated_at),
-            }))
+            const chunks: ContentChunk[] = rows.map(
+              (row: {
+                id: string
+                text: string
+                metadata: string
+                created_at: string
+                updated_at: string
+              }) => ({
+                id: row.id,
+                text: row.text,
+                metadata: {
+                  ...JSON.parse(row.metadata),
+                  source_url: (row as any).source_url,
+                  relevance_score: (row as any).relevance_score,
+                },
+                createdAt: new Date(row.created_at),
+                updatedAt: new Date(row.updated_at),
+              })
+            )
             resolve(chunks)
           }
         }
@@ -366,22 +394,22 @@ export class StructuredStore {
       Promise.all(
         queries.map(
           (query) =>
-            new Promise<any>((res, rej) => {
+            new Promise<{ count?: number; oldest?: string; newest?: string } | null>((res, rej) => {
               this.db.get(query, (err, row) => {
                 if (err) rej(err)
-                else res(row)
+                else res(row as { count?: number; oldest?: string; newest?: string })
               })
             })
         )
       )
         .then((results) => {
           const stats: MemoryStats = {
-            total_chunks: results[0].count,
-            total_sessions: results[1].count,
-            total_sources: results[2].count,
+            total_chunks: results[0]?.count || 0,
+            total_sessions: results[1]?.count || 0,
+            total_sources: results[2]?.count || 0,
             storage_size_mb: 0, // TODO: Calculate actual file size
-            oldest_chunk: results[3].oldest ? new Date(results[3].oldest) : new Date(),
-            newest_chunk: results[3].newest ? new Date(results[3].newest) : new Date(),
+            oldest_chunk: results[3]?.oldest ? new Date(results[3].oldest) : new Date(),
+            newest_chunk: results[3]?.newest ? new Date(results[3].newest) : new Date(),
           }
           resolve(stats)
         })
@@ -402,21 +430,42 @@ export class StructuredStore {
         LIMIT ?
       `,
         [`%${searchTerm}%`, `%${searchTerm}%`, limit],
-        (error, rows: any[]) => {
+        (
+          error: Error | null,
+          rows: {
+            id: string
+            query: string
+            description: string
+            created_at: string
+            updated_at: string
+            tags: string
+            status: string
+          }[]
+        ) => {
           if (error) {
             reject(new Error(`Failed to search sessions: ${error.message}`))
           } else {
-            const sessions: ResearchSession[] = rows.map((row) => ({
-              id: row.id,
-              query: row.query,
-              description: row.description,
-              created_at: new Date(row.created_at),
-              updated_at: new Date(row.updated_at),
-              chunk_ids: [], // TODO: Load chunk IDs if needed
-              source_urls: [], // TODO: Load source URLs if needed
-              tags: row.tags ? JSON.parse(row.tags) : [],
-              status: row.status,
-            }))
+            const sessions: ResearchSession[] = rows.map(
+              (row: {
+                id: string
+                query: string
+                description: string
+                created_at: string
+                updated_at: string
+                tags: string
+                status: string
+              }) => ({
+                id: row.id,
+                query: row.query,
+                description: row.description,
+                created_at: new Date(row.created_at),
+                updated_at: new Date(row.updated_at),
+                chunk_ids: [], // TODO: Load chunk IDs if needed
+                source_urls: [], // TODO: Load source URLs if needed
+                tags: row.tags ? (JSON.parse(row.tags) as string[]) : [],
+                status: row.status as 'active' | 'completed' | 'archived',
+              })
+            )
             resolve(sessions)
           }
         }

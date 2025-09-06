@@ -239,7 +239,7 @@ export class WebScraping implements Tool {
 export async function webScraping(
   url: string,
   options: { query?: string; maxContentLength?: number } = {}
-): Promise<any> {
+): Promise<{ success: boolean; output: string; executionTime: number }> {
   const scraper = new WebScraping()
   const result = await scraper.execute({ url, ...options })
 
@@ -247,5 +247,9 @@ export async function webScraping(
     throw new Error(result.error || 'Web scraping failed')
   }
 
-  return result.output
+  return {
+    success: true,
+    output: result.output as string,
+    executionTime: result.executionTime as number,
+  }
 }
