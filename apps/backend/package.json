@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@fastify/cors": "^8.5.0",
-    "@scout/tools": "*",
     "fastify": "^4.24.0",
     "openai": "^4.28.0"
   },

@@ -2,8 +2,6 @@ import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts
 import { AgentExecutor, createOpenAIToolsAgent, createToolCallingAgent } from 'langchain/agents'
 
 import { BrowserGetHtmlTool, BrowserNavigateTool } from './tools/browser.tool'
-import { MemSearchTool } from './tools/mem-search.tool'
-import { MemUpsertTool } from './tools/mem-upsert.tool'
 import { ParserReadTool } from './tools/parser.tool'
 import { ResearchWebTool } from './tools/research-web.tool'
 // Import tools
@@ -25,8 +23,6 @@ export async function makeAgent() {
     new BrowserNavigateTool(),
     new BrowserGetHtmlTool(),
     new ParserReadTool(),
-    new MemSearchTool(),
-    new MemUpsertTool(),
     new ResearchWebTool(),
   ]
 
