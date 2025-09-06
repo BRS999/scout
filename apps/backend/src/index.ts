@@ -32,6 +32,7 @@ fastify.get('/api/agent', async (_request: FastifyRequest, reply: FastifyReply) 
     method: 'POST required for queries',
   })
 })
+
 fastify.post('/api/agent', async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const { messages } = (request.body as { messages?: { role: string; content: string }[] }) ?? {

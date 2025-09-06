@@ -1,0 +1,23 @@
+{
+  "name": "@scout/memory",
+  "version": "0.1.0",
+  "description": "ChromaDB-based memory system for Scout",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write ."
+  },
+  "dependencies": {
+    "chromadb": "^3.0.14",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/uuid": "^9.0.8",
+    "typescript": "^5.0.0"
+  }
+}

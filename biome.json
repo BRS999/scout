@@ -13,7 +13,7 @@
         "noUnusedImports": "error"
       },
       "style": {
-        "noNonNullAssertion": "warn",
+        "noNonNullAssertion": "off",
         "useConst": "error",
         "useImportType": "error",
         "useTemplate": "error"

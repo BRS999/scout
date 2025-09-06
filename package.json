@@ -7,31 +7,32 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
-    "lint": "biome check .",
-    "lint:fix": "biome check . --write",
+    "lint": "npx biome check .",
+    "lint:fix": "npx biome check . --write",
     "test": "turbo test",
     "clean": "turbo clean",
     "type-check": "turbo type-check"
   },
   "dependencies": {
-    "langchain": "0.3.29",
-    "@langchain/core": "0.3.70",
     "@langchain/community": "0.2.31",
+    "@langchain/core": "0.3.70",
     "@langchain/openai": "0.6.11",
-    "openai": "4.67.3",
-    "zod": "3.23.8",
+    "@mozilla/readability": "0.5.0",
     "jsdom": "24.1.1",
-    "@mozilla/readability": "0.5.0"
+    "langchain": "0.3.29",
+    "openai": "4.67.3",
+    "zod": "3.23.8"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.5.0",
+    "@biomejs/biome": "^1.9.4",
     "@types/node": "^24.3.1",
-    "turbo": "^1.10.0",
-    "typescript": "^5.9.2",
-    "tsx": "^4.x"
+    "tsx": "^4.x",
+    "turbo": "^2.5.6",
+    "typescript": "^5.9.2"
   },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
-  }
+  },
+  "packageManager": "npm@11.5.1"
 }
