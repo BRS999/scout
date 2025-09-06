@@ -1,0 +1,25 @@
+{
+  "name": "@agentic-seek/llm",
+  "version": "1.0.0",
+  "description": "LLM provider implementations for AgenticSeek",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format .",
+    "format:write": "biome format --write ."
+  },
+  "dependencies": {
+    "@agentic-seek/shared": "*",
+    "openai": "^4.28.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

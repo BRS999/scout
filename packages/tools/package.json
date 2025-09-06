@@ -1,0 +1,30 @@
+{
+  "name": "@agentic-seek/tools",
+  "version": "0.1.0",
+  "description": "Tool implementations for AgenticSeek agents",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format .",
+    "format:write": "biome format --write ."
+  },
+  "dependencies": {
+    "@agentic-seek/shared": "*",
+    "axios": "^1.6.0",
+    "sqlite3": "^5.1.0",
+    "mysql2": "^3.6.0",
+    "pg": "^8.11.0",
+    "sharp": "^0.33.0"
+  },
+  "devDependencies": {
+    "@types/sqlite3": "^3.1.0",
+    "@types/pg": "^8.10.0",
+    "typescript": "^5.0.0"
+  },
+  "files": ["dist"]
+}
