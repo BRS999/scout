@@ -1,6 +1,8 @@
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts'
 import { AgentExecutor, createOpenAIToolsAgent, createToolCallingAgent } from 'langchain/agents'
 
+// Import memory tools
+import { MemSearchTool, MemUpsertTool } from '@scout/memory'
 import { BrowserGetHtmlTool, BrowserNavigateTool } from './tools/browser.tool'
 import { ParserReadTool } from './tools/parser.tool'
 import { ResearchWebTool } from './tools/research-web.tool'
@@ -24,6 +26,8 @@ export async function makeAgent() {
     new BrowserGetHtmlTool(),
     new ParserReadTool(),
     new ResearchWebTool(),
+    new MemSearchTool(),
+    new MemUpsertTool(),
   ]
 
   // Use tool-calling agent; prefer provider-agnostic ToolCalling agent

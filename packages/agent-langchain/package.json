@@ -19,7 +19,8 @@
     "openai": "4.67.3",
     "zod": "3.23.8",
     "jsdom": "24.1.1",
-    "@mozilla/readability": "0.5.0"
+    "@mozilla/readability": "0.5.0",
+    "@scout/memory": "file:../memory"
   },
   "devDependencies": {
     "@types/jsdom": "^21.1.6",

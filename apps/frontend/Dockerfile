@@ -6,7 +6,7 @@ RUN apk add --no-cache libc6-compat curl bash
 WORKDIR /app
 
 # Install turbo globally
-RUN npm install -g turbo@1.10.0
+RUN npm install -g turbo@2.5.6
 
 FROM base AS builder
 
@@ -15,6 +15,7 @@ COPY package.json turbo.json tsconfig.base.json ./
 
 # Copy all package.json files for dependency resolution
 COPY packages/agent-langchain/package.json ./packages/agent-langchain/
+COPY packages/memory/package.json ./packages/memory/
 COPY apps/backend/package.json ./apps/backend/
 COPY apps/frontend/package.json ./apps/frontend/
 
@@ -31,7 +32,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build using turbo (builds dependencies in correct order)
-RUN turbo build --scope=@scout/frontend --include-dependencies
+RUN turbo build --filter=@scout/frontend
 
 FROM base AS runner
 
@@ -53,14 +54,14 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/public ./apps/front
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 3001
 
-ENV PORT=3000
+ENV PORT=3001
 ENV HOSTNAME="0.0.0.0"
 
 # Healthcheck to ensure server is accepting requests
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:3000/ || exit 1
+  CMD curl -f http://localhost:3001/ || exit 1
 
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/next-config-js/output
