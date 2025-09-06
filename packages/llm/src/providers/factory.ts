@@ -1,4 +1,4 @@
-import { type LLMProvider, ProviderType } from '@agentic-seek/shared'
+import { type LLMProvider, ProviderType } from '@scout/shared'
 import { LMStudioProvider } from './lm-studio-provider'
 import { OpenAIProvider } from './openai-provider'
 

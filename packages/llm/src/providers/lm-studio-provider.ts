@@ -1,4 +1,4 @@
-import type { LLMMessage, LLMOptions, LLMResponse } from '@agentic-seek/shared'
+import type { LLMMessage, LLMOptions, LLMResponse } from '@scout/shared'
 import { OpenAIProvider } from './openai-provider'
 
 export class LMStudioProvider extends OpenAIProvider {

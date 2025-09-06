@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TimeoutError = exports.ExecutionError = exports.ValidationError = exports.AgenticSeekError = exports.ProviderType = exports.ToolType = exports.BlockType = exports.AgentType = void 0;
+exports.TimeoutError = exports.ExecutionError = exports.ValidationError = exports.ScoutError = exports.ProviderType = exports.ToolType = exports.BlockType = exports.AgentType = void 0;
 // Enums
 var AgentType;
 (function (AgentType) {
@@ -38,35 +38,36 @@ var ProviderType;
     ProviderType["CUSTOM"] = "custom";
 })(ProviderType || (exports.ProviderType = ProviderType = {}));
 // Error types
-class AgenticSeekError extends Error {
+class ScoutError extends Error {
     code;
     statusCode;
     constructor(message, code, statusCode = 500) {
         super(message);
         this.code = code;
         this.statusCode = statusCode;
-        this.name = 'AgenticSeekError';
+        this.name = 'ScoutError';
     }
 }
-exports.AgenticSeekError = AgenticSeekError;
-class ValidationError extends AgenticSeekError {
+exports.ScoutError = ScoutError;
+class ValidationError extends ScoutError {
     constructor(message) {
         super(message, 'VALIDATION_ERROR', 400);
         this.name = 'ValidationError';
     }
 }
 exports.ValidationError = ValidationError;
-class ExecutionError extends AgenticSeekError {
+class ExecutionError extends ScoutError {
     constructor(message) {
         super(message, 'EXECUTION_ERROR', 500);
         this.name = 'ExecutionError';
     }
 }
 exports.ExecutionError = ExecutionError;
-class TimeoutError extends AgenticSeekError {
+class TimeoutError extends ScoutError {
     constructor(message) {
         super(message, 'TIMEOUT_ERROR', 408);
         this.name = 'TimeoutError';
     }
 }
 exports.TimeoutError = TimeoutError;
+// Memory types are exported from @scout/memory package

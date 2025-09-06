@@ -18,7 +18,7 @@ exports.camelToSnake = camelToSnake;
 exports.snakeToCamel = snakeToCamel;
 exports.removeMarkdown = removeMarkdown;
 const uuid_1 = require("uuid");
-// Utility functions for AgenticSeek
+// Utility functions for Scout
 function generateId() {
     return (0, uuid_1.v4)();
 }

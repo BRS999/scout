@@ -128,7 +128,7 @@ export declare enum ProviderType {
     LM_STUDIO = "lm_studio",
     CUSTOM = "custom"
 }
-export interface AgenticSeekConfig {
+export interface ScoutConfig {
     llm: {
         provider: ProviderType;
         model: string;
@@ -165,17 +165,57 @@ export interface APIResponse {
     timestamp: Date;
     processingTime: number;
 }
-export declare class AgenticSeekError extends Error {
+export declare class ScoutError extends Error {
     code: string;
     statusCode: number;
     constructor(message: string, code: string, statusCode?: number);
 }
-export declare class ValidationError extends AgenticSeekError {
+export declare class ValidationError extends ScoutError {
     constructor(message: string);
 }
-export declare class ExecutionError extends AgenticSeekError {
+export declare class ExecutionError extends ScoutError {
     constructor(message: string);
 }
-export declare class TimeoutError extends AgenticSeekError {
+export declare class TimeoutError extends ScoutError {
     constructor(message: string);
+}
+export interface ResearchQuery {
+    question: string;
+    description?: string;
+    tags?: string[];
+    require_recent?: boolean;
+    depth?: 'shallow' | 'medium' | 'deep';
+    sources?: string[];
+}
+export interface ResearchResult {
+    query: string;
+    answer: string;
+    sources: string[];
+    confidence: number;
+    session_id: string;
+    memory_used: boolean;
+    new_sources_found: number;
+    chunks_stored: number;
+    metadata?: {
+        search_time_ms?: number;
+        synthesis_time_ms?: number;
+        total_chunks_analyzed?: number;
+    };
+}
+export interface AgentConfig {
+    id?: string;
+    name?: string;
+    llm?: {
+        provider?: string;
+        model?: string;
+        temperature?: number;
+    };
+    tools?: string[];
+    memory?: boolean;
+}
+export interface AgentState {
+    status: 'idle' | 'running' | 'completed' | 'error';
+    current_task?: string;
+    progress?: number;
+    metadata?: Record<string, any>;
 }

@@ -1,6 +1,6 @@
-# AgenticSeek - Docker Setup
+# Scout - Docker Setup
 
-Run the complete AgenticSeek system locally using Docker with a single command!
+Run the complete Scout system locally using Docker with a single command!
 
 > 📁 **Docker files are located in the `docker/` directory**
 
@@ -299,4 +299,4 @@ This project is licensed under the GPL-3.0 License - see the LICENSE file for de
 
 ---
 
-**Happy coding with AgenticSeek! 🚀**
+**Happy coding with Scout! 🚀**

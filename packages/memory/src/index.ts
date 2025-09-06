@@ -12,12 +12,12 @@ export type {
   VectorSearchOptions,
   MemoryUpsertOptions,
   MemoryConfig,
-  MemoryStats
+  MemoryStats,
 } from './types'
 
+import { MemoryManager } from './memory-manager'
 // Import types for use in functions
 import type { MemoryConfig } from './types'
-import { MemoryManager } from './memory-manager'
 
 // Default configuration factory
 export const createMemoryConfig = (overrides: Partial<MemoryConfig> = {}): MemoryConfig => {
@@ -28,7 +28,7 @@ export const createMemoryConfig = (overrides: Partial<MemoryConfig> = {}): Memor
     embedding_model: 'default',
     max_chunk_size: 1000,
     chunk_overlap: 100,
-    ...overrides
+    ...overrides,
   }
 }
 

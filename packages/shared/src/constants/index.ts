@@ -1,4 +1,4 @@
-// Constants for AgenticSeek
+// Constants for Scout
 
 export const DEFAULT_CONFIG = {
   LLM: {

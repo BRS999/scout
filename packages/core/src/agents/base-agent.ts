@@ -7,7 +7,7 @@ import {
   type Tool,
   generateId,
   measureExecutionTime,
-} from '@agentic-seek/shared'
+} from '@scout/shared'
 
 export abstract class BaseAgent implements AgentType {
   public readonly id: string

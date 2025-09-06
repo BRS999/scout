@@ -1,5 +1,5 @@
-import { ContentChunk, MemoryMatch, VectorSearchOptions } from './types'
 import { v4 as uuidv4 } from 'uuid'
+import type { ContentChunk, MemoryMatch, VectorSearchOptions } from './types'
 
 export class VectorStore {
   private client: any
@@ -8,7 +8,7 @@ export class VectorStore {
   private chromaUrl: string
   private useMock: boolean
 
-  constructor(chromaUrl: string = 'http://localhost:8000', collectionName: string = 'research_memory') {
+  constructor(chromaUrl = 'http://localhost:8000', collectionName = 'research_memory') {
     this.chromaUrl = chromaUrl
     this.collectionName = collectionName
     this.useMock = (process.env.MEMORY_VECTOR_BACKEND || '').toLowerCase() === 'mock'
@@ -18,18 +18,13 @@ export class VectorStore {
   async initialize(): Promise<void> {
     if (this.collection) return
     if (this.useMock) {
-      // eslint-disable-next-line no-console
-      console.log('VectorStore running in MOCK mode')
       this.collection = { mock: true }
       return
     }
 
     // Dynamic import to remain compatible with CJS build
     const chroma = await import('chromadb')
-    const ChromaClient = (chroma as any).ChromaClient || (chroma as any).default?.ChromaClient
-    if (!ChromaClient) {
-      throw new Error('Failed to load ChromaClient from chromadb package')
-    }
+    const { ChromaClient } = chroma
 
     this.client = new ChromaClient({ path: this.chromaUrl })
 
@@ -44,8 +39,6 @@ export class VectorStore {
     }
 
     this.collection = await this.client.getOrCreateCollection({ name: this.collectionName })
-    // eslint-disable-next-line no-console
-    console.log(`ChromaDB connected. Using collection: ${this.collectionName}`)
   }
 
   // Search for similar chunks
@@ -63,7 +56,7 @@ export class VectorStore {
       queryEmbeddings: [queryEmbedding],
       nResults: k,
       where: options.filter || undefined,
-      include: ["metadatas", "documents", "distances"],
+      include: ['metadatas', 'documents', 'distances'],
     })
 
     const matches: MemoryMatch[] = []
@@ -101,16 +94,15 @@ export class VectorStore {
     }
     if (!chunks.length) return
     if (this.useMock) {
-      // no-op in mock mode
-      // eslint-disable-next-line no-console
-      console.log(`Mock vector storage for ${chunks.length} chunks`)
       return
     }
 
     const ids = chunks.map((c) => c.id || uuidv4())
     const documents = chunks.map((c) => c.text)
     const embeddings = await Promise.all(
-      chunks.map((c) => (c.embedding ? Promise.resolve(c.embedding) : this.generateEmbedding(c.text)))
+      chunks.map((c) =>
+        c.embedding ? Promise.resolve(c.embedding) : this.generateEmbedding(c.text)
+      )
     )
     const metadatas = chunks.map((c) => this.prepareMetadata(c))
 
@@ -187,7 +179,12 @@ export class VectorStore {
         chunk: {
           id: uuidv4(),
           text: `Mock result ${i + 1} for "${query}"`,
-          metadata: { source_title: 'mock', source_url: 'mock://', chunk_type: 'paragraph', word_count: 10 },
+          metadata: {
+            source_title: 'mock',
+            source_url: 'mock://',
+            chunk_type: 'paragraph',
+            word_count: 10,
+          },
           createdAt: new Date(),
           updatedAt: new Date(),
         },

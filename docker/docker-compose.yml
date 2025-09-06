@@ -1,6 +1,6 @@
 services:
   redis:
-    container_name: agentic-seek-redis
+    container_name: scout-redis
     image: docker.io/valkey/valkey:8-alpine
     command: valkey-server --save 30 1 --loglevel warning
     restart: unless-stopped
@@ -18,10 +18,10 @@ services:
         max-size: "1m"
         max-file: "1"
     networks:
-      - agentic-seek-net
+      - scout-net
 
   searxng:
-    container_name: agentic-seek-searxng
+    container_name: scout-searxng
     image: docker.io/searxng/searxng:latest
     restart: unless-stopped
     ports:
@@ -45,10 +45,10 @@ services:
     depends_on:
       - redis
     networks:
-      - agentic-seek-net
+      - scout-net
 
   chromadb:
-    container_name: agentic-seek-chromadb
+    container_name: scout-chromadb
     image: ghcr.io/chroma-core/chroma:latest
     restart: unless-stopped
     ports:
@@ -58,17 +58,11 @@ services:
       - PERSIST_DIRECTORY=/chroma
     volumes:
       - chroma-data:/chroma
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
     networks:
-      - agentic-seek-net
+      - scout-net
 
   backend:
-    container_name: agentic-seek-backend
+    container_name: scout-backend
     build:
       context: ..
       dockerfile: ./apps/backend/Dockerfile
@@ -88,7 +82,7 @@ services:
       - searxng
       - chromadb
     networks:
-      - agentic-seek-net
+      - scout-net
     volumes:
       - backend-data:/data
     healthcheck:
@@ -99,7 +93,7 @@ services:
       start_period: 40s
 
   frontend:
-    container_name: agentic-seek-frontend
+    container_name: scout-frontend
     build:
       context: ..
       dockerfile: ./apps/frontend/Dockerfile
@@ -116,7 +110,7 @@ services:
     depends_on:
       - backend
     networks:
-      - agentic-seek-net
+      - scout-net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/"]
       interval: 30s
@@ -130,7 +124,7 @@ volumes:
   chroma-data:
 
 networks:
-  agentic-seek-net:
+  scout-net:
     driver: bridge
 
   

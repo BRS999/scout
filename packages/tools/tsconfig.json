@@ -5,7 +5,7 @@
     "rootDir": "./src",
     "baseUrl": ".",
     "paths": {
-      "@agentic-seek/*": ["../*/dist"]
+      "@scout/*": ["../*/dist"]
     }
   },
   "include": ["src/**/*"],

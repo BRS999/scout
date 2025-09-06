@@ -10,7 +10,7 @@ export type {
   QueryResult,
   Tool,
   LLMProvider,
-  AgenticSeekConfig,
+  ScoutConfig,
   APIRequest,
   APIResponse,
 } from './types'

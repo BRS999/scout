@@ -1,7 +1,7 @@
 {
-  "name": "@agentic-seek/backend",
+  "name": "@scout/backend",
   "version": "0.1.0",
-  "description": "Fastify API server for AgenticSeek",
+  "description": "Fastify API server for Scout",
   "main": "dist/apps/backend/src/index.js",
   "scripts": {
     "build": "tsc",
@@ -17,7 +17,7 @@
     "fastify": "^4.24.0",
     "@fastify/cors": "^8.5.0",
     "openai": "^4.28.0",
-    "@agentic-seek/tools": "*"
+    "@scout/tools": "*"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
-import { type Tool, type ToolResult, ToolType } from '@agentic-seek/shared'
+import { type Tool, type ToolResult, ToolType } from '@scout/shared'
 
 export class FileFinder implements Tool {
   id = 'file-finder'

@@ -1,7 +1,7 @@
 {
-  "name": "@agentic-seek/llm",
+  "name": "@scout/llm",
   "version": "1.0.0",
-  "description": "LLM provider implementations for AgenticSeek",
+  "description": "LLM provider implementations for Scout",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -15,7 +15,7 @@
     "format:write": "biome format --write ."
   },
   "dependencies": {
-    "@agentic-seek/shared": "*",
+    "@scout/shared": "*",
     "openai": "^4.28.0"
   },
   "devDependencies": {

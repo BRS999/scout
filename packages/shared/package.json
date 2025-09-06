@@ -1,7 +1,7 @@
 {
-  "name": "@agentic-seek/shared",
+  "name": "@scout/shared",
   "version": "0.1.0",
-  "description": "Shared types and utilities for AgenticSeek",
+  "description": "Shared types and utilities for Scout",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

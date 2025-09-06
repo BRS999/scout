@@ -15,7 +15,7 @@
     "emitDecoratorMetadata": true,
     "baseUrl": ".",
     "paths": {
-      "@agentic-seek/*": ["packages/*/src"]
+      "@scout/*": ["packages/*/src"]
     }
   }
 }

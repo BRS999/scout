@@ -7,7 +7,7 @@ import {
   type Tool,
   type ToolResult,
   generateId,
-} from '@agentic-seek/shared'
+} from '@scout/shared'
 
 export class CoderAgent {
   public readonly id: string

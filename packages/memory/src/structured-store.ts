@@ -1,15 +1,14 @@
-import Database from 'sqlite3'
-import { ResearchSession, ContentChunk, ChunkMetadata, MemoryStats } from './types'
+import * as sqlite3 from 'sqlite3'
 import { v4 as uuidv4 } from 'uuid'
-import { promisify } from 'util'
+import type { ChunkMetadata, ContentChunk, MemoryStats, ResearchSession } from './types'
 
 export class StructuredStore {
-  private db: Database.Database
+  private db: sqlite3.Database
   private dbPath: string
 
-  constructor(dbPath: string = './data/memory.db') {
+  constructor(dbPath = './data/memory.db') {
     this.dbPath = dbPath
-    this.db = new Database.Database(dbPath)
+    this.db = new sqlite3.Database(dbPath)
   }
 
   /**
@@ -52,7 +51,7 @@ export class StructuredStore {
           )
         `)
 
-        // Content chunks table  
+        // Content chunks table
         this.db.run(`
           CREATE TABLE IF NOT EXISTS content_chunks (
             id TEXT PRIMARY KEY,
@@ -100,8 +99,6 @@ export class StructuredStore {
         this.db.run('CREATE INDEX IF NOT EXISTS idx_sources_domain ON sources (domain)')
         this.db.run('CREATE INDEX IF NOT EXISTS idx_sources_url ON sources (url)')
         this.db.run('CREATE INDEX IF NOT EXISTS idx_sessions_status ON research_sessions (status)')
-
-        console.log(`Initialized SQLite database at: ${this.dbPath}`)
         resolve()
       })
 
@@ -115,7 +112,11 @@ export class StructuredStore {
   /**
    * Create a new research session
    */
-  async createSession(query: string, description?: string, tags: string[] = []): Promise<ResearchSession> {
+  async createSession(
+    query: string,
+    description?: string,
+    tags: string[] = []
+  ): Promise<ResearchSession> {
     const session: ResearchSession = {
       id: uuidv4(),
       query,
@@ -125,7 +126,7 @@ export class StructuredStore {
       chunk_ids: [],
       source_urls: [],
       tags,
-      status: 'active'
+      status: 'active',
     }
 
     return new Promise((resolve, reject) => {
@@ -134,19 +135,22 @@ export class StructuredStore {
         VALUES (?, ?, ?, ?, ?)
       `)
 
-      stmt.run([
-        session.id,
-        session.query,
-        session.description || null,
-        JSON.stringify(tags),
-        session.status
-      ], function(error) {
-        if (error) {
-          reject(new Error(`Failed to create session: ${error.message}`))
-        } else {
-          resolve(session)
+      stmt.run(
+        [
+          session.id,
+          session.query,
+          session.description || null,
+          JSON.stringify(tags),
+          session.status,
+        ],
+        (error) => {
+          if (error) {
+            reject(new Error(`Failed to create session: ${error.message}`))
+          } else {
+            resolve(session)
+          }
         }
-      })
+      )
 
       stmt.finalize()
     })
@@ -157,28 +161,32 @@ export class StructuredStore {
    */
   async getSession(sessionId: string): Promise<ResearchSession | null> {
     return new Promise((resolve, reject) => {
-      this.db.get(`
+      this.db.get(
+        `
         SELECT * FROM research_sessions WHERE id = ?
-      `, [sessionId], (error, row: any) => {
-        if (error) {
-          reject(new Error(`Failed to get session: ${error.message}`))
-        } else if (!row) {
-          resolve(null)
-        } else {
-          const session: ResearchSession = {
-            id: row.id,
-            query: row.query,
-            description: row.description,
-            created_at: new Date(row.created_at),
-            updated_at: new Date(row.updated_at),
-            chunk_ids: [], // Will be populated by separate query
-            source_urls: [], // Will be populated by separate query
-            tags: row.tags ? JSON.parse(row.tags) : [],
-            status: row.status
+      `,
+        [sessionId],
+        (error, row: any) => {
+          if (error) {
+            reject(new Error(`Failed to get session: ${error.message}`))
+          } else if (!row) {
+            resolve(null)
+          } else {
+            const session: ResearchSession = {
+              id: row.id,
+              query: row.query,
+              description: row.description,
+              created_at: new Date(row.created_at),
+              updated_at: new Date(row.updated_at),
+              chunk_ids: [], // Will be populated by separate query
+              source_urls: [], // Will be populated by separate query
+              tags: row.tags ? JSON.parse(row.tags) : [],
+              status: row.status,
+            }
+            resolve(session)
           }
-          resolve(session)
         }
-      })
+      )
     })
   }
 
@@ -197,23 +205,26 @@ export class StructuredStore {
                 COALESCE((SELECT access_count + 1 FROM sources WHERE url = ?), 1))
       `)
 
-      stmt.run([
-        sourceId,
-        url,
-        metadata.source_title || null,
-        metadata.source_author || null,
-        metadata.source_published || null,
-        domain,
-        metadata.word_count || null,
-        JSON.stringify(metadata),
-        url
-      ], function(error) {
-        if (error) {
-          reject(new Error(`Failed to store source: ${error.message}`))
-        } else {
-          resolve(sourceId)
+      stmt.run(
+        [
+          sourceId,
+          url,
+          metadata.source_title || null,
+          metadata.source_author || null,
+          metadata.source_published || null,
+          domain,
+          metadata.word_count || null,
+          JSON.stringify(metadata),
+          url,
+        ],
+        (error) => {
+          if (error) {
+            reject(new Error(`Failed to store source: ${error.message}`))
+          } else {
+            resolve(sourceId)
+          }
         }
-      })
+      )
 
       stmt.finalize()
     })
@@ -223,8 +234,9 @@ export class StructuredStore {
    * Store content chunk with metadata
    */
   async storeChunk(chunk: ContentChunk, sessionId?: string): Promise<void> {
-    const sourceId = chunk.metadata.source_url ? 
-      await this.upsertSource(chunk.metadata.source_url, chunk.metadata) : null
+    const sourceId = chunk.metadata.source_url
+      ? await this.upsertSource(chunk.metadata.source_url, chunk.metadata)
+      : null
 
     return new Promise((resolve, reject) => {
       const stmt = this.db.prepare(`
@@ -233,38 +245,44 @@ export class StructuredStore {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `)
 
-      stmt.run([
-        chunk.id,
-        sourceId,
-        sessionId || null,
-        chunk.text,
-        chunk.metadata.chunk_index || null,
-        chunk.metadata.chunk_type || 'paragraph',
-        chunk.metadata.word_count || chunk.text.split(/\s+/).length,
-        JSON.stringify(chunk.metadata)
-      ], (error) => {
-        if (error) {
-          reject(new Error(`Failed to store chunk: ${error.message}`))
-        } else {
-          // Link chunk to session if provided
-          if (sessionId) {
-            const linkStmt = this.db.prepare(`
+      stmt.run(
+        [
+          chunk.id,
+          sourceId,
+          sessionId || null,
+          chunk.text,
+          chunk.metadata.chunk_index || null,
+          chunk.metadata.chunk_type || 'paragraph',
+          chunk.metadata.word_count || chunk.text.split(/\s+/).length,
+          JSON.stringify(chunk.metadata),
+        ],
+        (error) => {
+          if (error) {
+            reject(new Error(`Failed to store chunk: ${error.message}`))
+          } else {
+            // Link chunk to session if provided
+            if (sessionId) {
+              const linkStmt = this.db.prepare(`
               INSERT OR REPLACE INTO session_chunks (session_id, chunk_id, relevance_score)
               VALUES (?, ?, ?)
             `)
-            linkStmt.run([sessionId, chunk.id, chunk.metadata.relevance_score || 0.0], (linkError: any) => {
-              if (linkError) {
-                reject(new Error(`Failed to link chunk to session: ${linkError.message}`))
-              } else {
-                resolve()
-              }
-            })
-            linkStmt.finalize()
-          } else {
-            resolve()
+              linkStmt.run(
+                [sessionId, chunk.id, chunk.metadata.relevance_score || 0.0],
+                (linkError: any) => {
+                  if (linkError) {
+                    reject(new Error(`Failed to link chunk to session: ${linkError.message}`))
+                  } else {
+                    resolve()
+                  }
+                }
+              )
+              linkStmt.finalize()
+            } else {
+              resolve()
+            }
           }
         }
-      })
+      )
 
       stmt.finalize()
     })
@@ -273,14 +291,18 @@ export class StructuredStore {
   /**
    * Link a chunk to a research session
    */
-  private async linkChunkToSession(sessionId: string, chunkId: string, relevanceScore?: number): Promise<void> {
+  private async linkChunkToSession(
+    sessionId: string,
+    chunkId: string,
+    relevanceScore?: number
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       const stmt = this.db.prepare(`
         INSERT OR REPLACE INTO session_chunks (session_id, chunk_id, relevance_score)
         VALUES (?, ?, ?)
       `)
 
-      stmt.run([sessionId, chunkId, relevanceScore || 0.0], function(error) {
+      stmt.run([sessionId, chunkId, relevanceScore || 0.0], (error) => {
         if (error) {
           reject(new Error(`Failed to link chunk to session: ${error.message}`))
         } else {
@@ -297,31 +319,35 @@ export class StructuredStore {
    */
   async getSessionChunks(sessionId: string): Promise<ContentChunk[]> {
     return new Promise((resolve, reject) => {
-      this.db.all(`
+      this.db.all(
+        `
         SELECT c.*, sc.relevance_score, s.url as source_url
         FROM content_chunks c
         JOIN session_chunks sc ON c.id = sc.chunk_id
         LEFT JOIN sources s ON c.source_id = s.id
         WHERE sc.session_id = ?
         ORDER BY sc.relevance_score DESC, c.created_at ASC
-      `, [sessionId], (error, rows: any[]) => {
-        if (error) {
-          reject(new Error(`Failed to get session chunks: ${error.message}`))
-        } else {
-          const chunks: ContentChunk[] = rows.map(row => ({
-            id: row.id,
-            text: row.text,
-            metadata: {
-              ...JSON.parse(row.metadata || '{}'),
-              source_url: row.source_url,
-              relevance_score: row.relevance_score
-            },
-            createdAt: new Date(row.created_at),
-            updatedAt: new Date(row.updated_at)
-          }))
-          resolve(chunks)
+      `,
+        [sessionId],
+        (error, rows: any[]) => {
+          if (error) {
+            reject(new Error(`Failed to get session chunks: ${error.message}`))
+          } else {
+            const chunks: ContentChunk[] = rows.map((row) => ({
+              id: row.id,
+              text: row.text,
+              metadata: {
+                ...JSON.parse(row.metadata || '{}'),
+                source_url: row.source_url,
+                relevance_score: row.relevance_score,
+              },
+              createdAt: new Date(row.created_at),
+              updatedAt: new Date(row.updated_at),
+            }))
+            resolve(chunks)
+          }
         }
-      })
+      )
     })
   }
 
@@ -334,58 +360,67 @@ export class StructuredStore {
         'SELECT COUNT(*) as count FROM content_chunks',
         'SELECT COUNT(*) as count FROM research_sessions',
         'SELECT COUNT(*) as count FROM sources',
-        'SELECT MIN(created_at) as oldest, MAX(created_at) as newest FROM content_chunks'
+        'SELECT MIN(created_at) as oldest, MAX(created_at) as newest FROM content_chunks',
       ]
 
-      Promise.all(queries.map(query => 
-        new Promise<any>((res, rej) => {
-          this.db.get(query, (err, row) => {
-            if (err) rej(err)
-            else res(row)
-          })
+      Promise.all(
+        queries.map(
+          (query) =>
+            new Promise<any>((res, rej) => {
+              this.db.get(query, (err, row) => {
+                if (err) rej(err)
+                else res(row)
+              })
+            })
+        )
+      )
+        .then((results) => {
+          const stats: MemoryStats = {
+            total_chunks: results[0].count,
+            total_sessions: results[1].count,
+            total_sources: results[2].count,
+            storage_size_mb: 0, // TODO: Calculate actual file size
+            oldest_chunk: results[3].oldest ? new Date(results[3].oldest) : new Date(),
+            newest_chunk: results[3].newest ? new Date(results[3].newest) : new Date(),
+          }
+          resolve(stats)
         })
-      )).then(results => {
-        const stats: MemoryStats = {
-          total_chunks: results[0].count,
-          total_sessions: results[1].count,
-          total_sources: results[2].count,
-          storage_size_mb: 0, // TODO: Calculate actual file size
-          oldest_chunk: results[3].oldest ? new Date(results[3].oldest) : new Date(),
-          newest_chunk: results[3].newest ? new Date(results[3].newest) : new Date()
-        }
-        resolve(stats)
-      }).catch(reject)
+        .catch(reject)
     })
   }
 
   /**
    * Search sessions by query or tags
    */
-  async searchSessions(searchTerm: string, limit: number = 10): Promise<ResearchSession[]> {
+  async searchSessions(searchTerm: string, limit = 10): Promise<ResearchSession[]> {
     return new Promise((resolve, reject) => {
-      this.db.all(`
+      this.db.all(
+        `
         SELECT * FROM research_sessions 
         WHERE query LIKE ? OR tags LIKE ?
         ORDER BY updated_at DESC
         LIMIT ?
-      `, [`%${searchTerm}%`, `%${searchTerm}%`, limit], (error, rows: any[]) => {
-        if (error) {
-          reject(new Error(`Failed to search sessions: ${error.message}`))
-        } else {
-          const sessions: ResearchSession[] = rows.map(row => ({
-            id: row.id,
-            query: row.query,
-            description: row.description,
-            created_at: new Date(row.created_at),
-            updated_at: new Date(row.updated_at),
-            chunk_ids: [], // TODO: Load chunk IDs if needed
-            source_urls: [], // TODO: Load source URLs if needed
-            tags: row.tags ? JSON.parse(row.tags) : [],
-            status: row.status
-          }))
-          resolve(sessions)
+      `,
+        [`%${searchTerm}%`, `%${searchTerm}%`, limit],
+        (error, rows: any[]) => {
+          if (error) {
+            reject(new Error(`Failed to search sessions: ${error.message}`))
+          } else {
+            const sessions: ResearchSession[] = rows.map((row) => ({
+              id: row.id,
+              query: row.query,
+              description: row.description,
+              created_at: new Date(row.created_at),
+              updated_at: new Date(row.updated_at),
+              chunk_ids: [], // TODO: Load chunk IDs if needed
+              source_urls: [], // TODO: Load source URLs if needed
+              tags: row.tags ? JSON.parse(row.tags) : [],
+              status: row.status,
+            }))
+            resolve(sessions)
+          }
         }
-      })
+      )
     })
   }
 
@@ -398,7 +433,6 @@ export class StructuredStore {
         if (error) {
           reject(new Error(`Failed to close database: ${error.message}`))
         } else {
-          console.log('SQLite database connection closed')
           resolve()
         }
       })

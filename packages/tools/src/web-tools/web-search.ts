@@ -1,10 +1,12 @@
-import { type Tool, type ToolResult, ToolType } from '@agentic-seek/shared'
+import { type Tool, type ToolResult, ToolType } from '@scout/shared'
 
 export interface SearchResult {
   title: string
   snippet: string
   link: string
   source?: string
+  url?: string
+  engine?: string
 }
 
 export class WebSearch implements Tool {
@@ -80,7 +82,8 @@ export class WebSearch implements Tool {
       const response = await fetch(searchUrl, {
         method: 'POST',
         headers: {
-          Accept: 'application/json,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          Accept:
+            'application/json,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.9',
           'Cache-Control': 'no-cache',
           Connection: 'keep-alive',
@@ -95,24 +98,16 @@ export class WebSearch implements Tool {
       if (!response.ok) {
         throw new Error(`SearxNG request failed: ${response.status} ${response.statusText}`)
       }
+      const contentType = (response.headers as Headers).get
+        ? (response.headers as Headers).get('content-type')
+        : (response.headers as unknown as Record<string, string>)['content-type']
 
-      // Try to parse as JSON first, fallback to HTML
-      console.log('Response headers type:', typeof response.headers)
-      console.log('Response headers:', response.headers)
-      const contentType = (response.headers as any).get ? (response.headers as any).get('content-type') : (response.headers as any)['content-type']
-      console.log('SearxNG response content-type:', contentType)
-
-      if (contentType && contentType.includes('application/json')) {
-        console.log('Parsing as JSON')
-        const jsonData = await response.json() as any
-        console.log('JSON data keys:', Object.keys(jsonData))
-        console.log('JSON results count:', jsonData.results ? jsonData.results.length : 'no results')
+      if (contentType?.includes('application/json')) {
+        const jsonData = (await response.json()) as unknown
         return this.parseSearchResultsJson(jsonData)
-      } else {
-        console.log('Parsing as HTML')
-        const htmlContent = await response.text()
-        return this.parseSearchResultsHtml(htmlContent)
       }
+      const htmlContent = await response.text()
+      return this.parseSearchResultsHtml(htmlContent)
     } catch (error) {
       console.error('Web search error:', error)
 
@@ -132,20 +127,28 @@ export class WebSearch implements Tool {
     }
   }
 
-  private parseSearchResultsJson(jsonData: any): SearchResult[] {
+  private parseSearchResultsJson(jsonData: unknown): SearchResult[] {
     const results: SearchResult[] = []
 
-    if (!jsonData.results || !Array.isArray(jsonData.results)) {
+    if (
+      !(
+        jsonData &&
+        typeof jsonData === 'object' &&
+        'results' in jsonData &&
+        Array.isArray((jsonData as { results?: unknown }).results)
+      )
+    ) {
       return results
     }
 
-    for (const item of jsonData.results.slice(0, 10)) {
-      if (item.url && item.title) {
+    for (const item of (jsonData as { results: unknown[] }).results.slice(0, 10)) {
+      const itemData = item as { url?: string; title?: string; content?: string; engine?: string }
+      if (itemData.url && itemData.title) {
         results.push({
-          link: item.url,
-          title: item.title,
-          snippet: item.content || '',
-          source: item.engine || 'unknown',
+          link: itemData.url,
+          title: itemData.title,
+          snippet: itemData.content || '',
+          source: itemData.engine || 'unknown',
         })
       }
     }
@@ -295,16 +298,16 @@ export class WebSearch implements Tool {
 
 // Convenience function for direct use
 export async function webSearch(
-  query: string, 
+  query: string,
   options: { num_results?: number; searxng_url?: string } = {}
 ): Promise<SearchResult[]> {
   const searcher = new WebSearch(options.searxng_url)
   const result = await searcher.execute(query)
-  
+
   if (!result.success) {
     throw new Error(result.error || 'Web search failed')
   }
-  
+
   const results = result.output as SearchResult[]
   return options.num_results ? results.slice(0, options.num_results) : results
 }

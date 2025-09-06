@@ -22,25 +22,17 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-
       - name: Install dependencies
-        run: bun install
+        run: npm ci
 
       - name: Lint code
-        run: bun run format-and-lint
+        run: npm run lint
 
       - name: Type check
-        run: bun run type-check
-
-      - name: Run tests
-        run: bun run test
+        run: npm run type-check
 
       - name: Build packages
-        run: bun run build
+        run: npm run build
 
   docker-build:
     runs-on: ubuntu-latest
@@ -59,7 +51,7 @@ jobs:
           context: .
           file: ./apps/frontend/Dockerfile
           push: false
-          tags: agentic-seek-frontend:test
+          tags: scout-frontend:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -69,6 +61,6 @@ jobs:
           context: .
           file: ./apps/backend/Dockerfile
           push: false
-          tags: agentic-seek-backend:test
+          tags: scout-backend:test
           cache-from: type=gha
           cache-to: type=gha,mode=max

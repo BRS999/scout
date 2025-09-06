@@ -36,7 +36,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build using turbo (builds dependencies in correct order)
-RUN turbo build --filter=@agentic-seek/frontend
+RUN turbo build --filter=@scout/frontend
 
 FROM base AS runner
 

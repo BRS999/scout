@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 
-// Utility functions for AgenticSeek
+// Utility functions for Scout
 
 export function generateId(): string {
   return uuidv4()

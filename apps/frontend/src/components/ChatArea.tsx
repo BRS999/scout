@@ -7,8 +7,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Bot, Send, User } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
+import remarkGfm from 'remark-gfm'
 
 interface Message {
   id: string
@@ -94,10 +94,10 @@ export function ChatArea() {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border min-h-[73px]">
         <div className="flex items-center space-x-2">
-          <h1 className="text-lg font-semibold">AgenticSeek</h1>
+          <h1 className="text-lg font-semibold">Scout</h1>
           <ThemeToggle />
         </div>
-        <div className="text-sm text-muted-foreground shrink-0">AI-powered agent system</div>
+        <div className="text-sm text-muted-foreground shrink-0">AI powered agent system</div>
       </div>
 
       {/* Messages */}
@@ -106,7 +106,7 @@ export function ChatArea() {
           {messages.length === 0 && (
             <div className="text-center text-muted-foreground py-8">
               <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg mb-2">Welcome to AgenticSeek!</p>
+              <p className="text-lg mb-2">Welcome to Scout!</p>
               <p className="text-sm">
                 Ask me anything - I can help with coding, research, and more.
               </p>

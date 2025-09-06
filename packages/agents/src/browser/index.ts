@@ -5,8 +5,8 @@ import {
   type QueryResult,
   type Tool,
   generateId,
-} from '@agentic-seek/shared'
-import type { SearchResult } from '@agentic-seek/tools'
+} from '@scout/shared'
+import type { SearchResult } from '@scout/tools'
 
 export class BrowserAgent {
   public readonly id: string

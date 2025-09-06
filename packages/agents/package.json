@@ -1,7 +1,7 @@
 {
-  "name": "@agentic-seek/agents",
+  "name": "@scout/agents",
   "version": "0.1.0",
-  "description": "Specialized agent implementations for AgenticSeek",
+  "description": "Specialized agent implementations for Scout",
   "main": "dist/agents/src/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -14,8 +14,8 @@
     "format:write": "biome format --write ."
   },
   "dependencies": {
-    "@agentic-seek/shared": "*",
-    "@agentic-seek/core": "*"
+    "@scout/shared": "*",
+    "@scout/core": "*"
   },
   "devDependencies": {
     "typescript": "^5.0.0"

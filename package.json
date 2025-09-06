@@ -1,7 +1,7 @@
 {
-  "name": "agentic-seek-ts",
+  "name": "scout",
   "version": "0.1.0",
-  "description": "TypeScript-based AI agent system inspired by AgenticSeek",
+  "description": "TypeScript-based AI agent system inspired by Scout",
   "private": true,
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {

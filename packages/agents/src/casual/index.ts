@@ -1,5 +1,5 @@
-import { BaseAgent } from '@agentic-seek/core'
-import { AgentType, type Query, type QueryResult } from '@agentic-seek/shared'
+import { BaseAgent } from '@scout/core'
+import { AgentType, type Query, type QueryResult } from '@scout/shared'
 
 export class CasualAgent extends BaseAgent {
   constructor() {

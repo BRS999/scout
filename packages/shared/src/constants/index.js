@@ -1,5 +1,5 @@
 "use strict";
-// Constants for AgenticSeek
+// Constants for Scout
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.METRICS_CONFIG = exports.CACHE_CONFIG = exports.RATE_LIMITS = exports.AGENT_PROMPTS = exports.ERROR_CODES = exports.HTTP_STATUS = exports.MIME_TYPES = exports.SUPPORTED_LANGUAGES = exports.DEFAULT_CONFIG = void 0;
 exports.DEFAULT_CONFIG = {

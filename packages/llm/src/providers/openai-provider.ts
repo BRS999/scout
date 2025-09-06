@@ -4,7 +4,7 @@ import {
   type LLMProvider,
   type LLMResponse,
   ProviderType,
-} from '@agentic-seek/shared'
+} from '@scout/shared'
 import { OpenAI } from 'openai'
 
 export class OpenAIProvider implements LLMProvider {
@@ -48,7 +48,9 @@ export class OpenAIProvider implements LLMProvider {
         stream: false, // Disable streaming for now
       })) as { choices: unknown[]; usage?: unknown } // Cast to handle type issues
 
-      const choice = (completion as any).choices[0]
+      const choice = (
+        completion as { choices: { message?: { content?: string }; finish_reason?: string }[] }
+      ).choices[0]
       if (!choice) {
         throw new Error('No completion choices returned')
       }
@@ -57,11 +59,42 @@ export class OpenAIProvider implements LLMProvider {
 
       return {
         content,
-        usage: (completion as any).usage
+        usage: (
+          completion as {
+            usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+          }
+        ).usage
           ? {
-              promptTokens: (completion as any).usage.prompt_tokens,
-              completionTokens: (completion as any).usage.completion_tokens,
-              totalTokens: (completion as any).usage.total_tokens,
+              promptTokens:
+                (
+                  completion as {
+                    usage?: {
+                      prompt_tokens?: number
+                      completion_tokens?: number
+                      total_tokens?: number
+                    }
+                  }
+                ).usage?.prompt_tokens || 0,
+              completionTokens:
+                (
+                  completion as {
+                    usage?: {
+                      prompt_tokens?: number
+                      completion_tokens?: number
+                      total_tokens?: number
+                    }
+                  }
+                ).usage?.completion_tokens || 0,
+              totalTokens:
+                (
+                  completion as {
+                    usage?: {
+                      prompt_tokens?: number
+                      completion_tokens?: number
+                      total_tokens?: number
+                    }
+                  }
+                ).usage?.total_tokens || 0,
             }
           : undefined,
         finishReason: choice.finish_reason || undefined,

@@ -1,5 +1,5 @@
-import { type Tool, type ToolResult, ToolType } from '@agentic-seek/shared'
-import { ReadabilityParser, type ParsedContent } from '../content-parser/readability-parser'
+import { type Tool, type ToolResult, ToolType } from '@scout/shared'
+import { type ParsedContent, readabilityParser } from '../content-parser/readability-parser'
 
 export interface ScrapingOptions {
   url: string
@@ -35,7 +35,11 @@ export class WebScraping implements Tool {
       }
 
       const parsedContent = await this.scrapePage(url, query)
-      const processedContent = this.processContent(parsedContent.textContent, maxContentLength, query)
+      const processedContent = this.processContent(
+        parsedContent.textContent,
+        maxContentLength,
+        query
+      )
 
       return {
         success: true,
@@ -111,7 +115,7 @@ export class WebScraping implements Tool {
       }
 
       const html = await response.text()
-      return await ReadabilityParser.parseHtml(html, url)
+      return await readabilityParser(html, url)
     } catch (error) {
       console.error('Scraping error:', error)
 
@@ -217,7 +221,7 @@ export class WebScraping implements Tool {
       content: `<article>${mockText}</article>`,
       textContent: mockText,
       length: mockText.length,
-      excerpt: mockText.substring(0, 200) + '...',
+      excerpt: `${mockText.substring(0, 200)}...`,
       lang: 'en',
       metadata: {
         source_url: url,
@@ -225,8 +229,8 @@ export class WebScraping implements Tool {
         source_domain: domain,
         word_count: mockText.split(/\s+/).length,
         language: 'en',
-        chunk_type: 'article'
-      }
+        chunk_type: 'article',
+      },
     }
   }
 }
@@ -238,10 +242,10 @@ export async function webScraping(
 ): Promise<any> {
   const scraper = new WebScraping()
   const result = await scraper.execute({ url, ...options })
-  
+
   if (!result.success) {
     throw new Error(result.error || 'Web scraping failed')
   }
-  
+
   return result.output
 }

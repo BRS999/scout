@@ -1,16 +1,16 @@
-import { VectorStore } from './vector-store'
-import { StructuredStore } from './structured-store'
-import { 
-  ContentChunk, 
-  MemoryMatch, 
-  VectorSearchOptions, 
-  MemoryUpsertOptions,
-  MemoryConfig,
-  MemoryStats,
-  ResearchSession,
-  ChunkMetadata
-} from './types'
 import { v4 as uuidv4 } from 'uuid'
+import { StructuredStore } from './structured-store'
+import type {
+  ChunkMetadata,
+  ContentChunk,
+  MemoryConfig,
+  MemoryMatch,
+  MemoryStats,
+  MemoryUpsertOptions,
+  ResearchSession,
+  VectorSearchOptions,
+} from './types'
+import { VectorStore } from './vector-store'
 
 export class MemoryManager {
   private vectorStore: VectorStore
@@ -25,7 +25,7 @@ export class MemoryManager {
       collection_name: config.collection_name || 'research_memory',
       embedding_model: config.embedding_model || 'default',
       max_chunk_size: config.max_chunk_size || 1000,
-      chunk_overlap: config.chunk_overlap || 100
+      chunk_overlap: config.chunk_overlap || 100,
     }
 
     this.vectorStore = new VectorStore(this.config.chroma_url, this.config.collection_name)
@@ -39,13 +39,9 @@ export class MemoryManager {
     if (this.initialized) return
 
     try {
-      await Promise.all([
-        this.vectorStore.initialize(),
-        this.structuredStore.initialize()
-      ])
-      
+      await Promise.all([this.vectorStore.initialize(), this.structuredStore.initialize()])
+
       this.initialized = true
-      console.log('MemoryManager initialized successfully')
     } catch (error) {
       console.error('Failed to initialize MemoryManager:', error)
       throw error
@@ -63,7 +59,7 @@ export class MemoryManager {
     try {
       // First search vector store for semantic similarity
       const vectorMatches = await this.vectorStore.search(options)
-      
+
       // Enhance matches with structured data if needed
       for (const match of vectorMatches) {
         // Add any additional metadata from structured store if needed
@@ -71,17 +67,15 @@ export class MemoryManager {
           // Could enhance with source reliability, access count, etc.
         }
       }
-
-      console.log(`Memory search found ${vectorMatches.length} matches for: "${options.query}"`)
       return vectorMatches
     } catch (error) {
       console.error('Memory search error:', error)
-      
+
       // Fallback to mock results in development
       if (process.env.NODE_ENV === 'development') {
         return this.getMockSearchResults(options.query, options.k || 5)
       }
-      
+
       throw error
     }
   }
@@ -90,8 +84,8 @@ export class MemoryManager {
    * Store content with automatic chunking and embedding
    */
   async upsert(
-    content: string, 
-    metadata: ChunkMetadata, 
+    content: string,
+    metadata: ChunkMetadata,
     options: MemoryUpsertOptions = {}
   ): Promise<ContentChunk[]> {
     if (!this.initialized) {
@@ -101,16 +95,12 @@ export class MemoryManager {
     try {
       // Chunk the content
       const chunks = this.chunkContent(content, metadata, options)
-      
+
       // Store in both vector and structured stores
       await Promise.all([
         this.vectorStore.upsert(chunks),
-        ...chunks.map(chunk => 
-          this.structuredStore.storeChunk(chunk, options.session_id)
-        )
+        ...chunks.map((chunk) => this.structuredStore.storeChunk(chunk, options.session_id)),
       ])
-
-      console.log(`Stored ${chunks.length} chunks for: ${metadata.source_title || 'content'}`)
       return chunks
     } catch (error) {
       console.error('Memory upsert error:', error)
@@ -138,7 +128,11 @@ export class MemoryManager {
   /**
    * Create and manage research sessions
    */
-  async createSession(query: string, description?: string, tags: string[] = []): Promise<ResearchSession> {
+  async createSession(
+    query: string,
+    description?: string,
+    tags: string[] = []
+  ): Promise<ResearchSession> {
     if (!this.initialized) {
       await this.initialize()
     }
@@ -155,13 +149,13 @@ export class MemoryManager {
     }
 
     const session = await this.structuredStore.getSession(sessionId)
-    
+
     if (session && includeChunks) {
       const chunks = await this.structuredStore.getSessionChunks(sessionId)
-      session.chunk_ids = chunks.map(c => c.id)
-      session.source_urls = [...new Set(
-        chunks.map(c => c.metadata.source_url).filter(Boolean)
-      )] as string[]
+      session.chunk_ids = chunks.map((c) => c.id)
+      session.source_urls = Array.from(
+        new Set(chunks.map((c) => c.metadata.source_url).filter(Boolean))
+      ) as string[]
     }
 
     return session
@@ -188,12 +182,12 @@ export class MemoryManager {
 
     const [structuredStats, vectorStats] = await Promise.all([
       this.structuredStore.getStats(),
-      this.vectorStore.getStats()
+      this.vectorStore.getStats(),
     ])
 
     return {
       ...structuredStats,
-      vector_count: vectorStats.count
+      vector_count: vectorStats.count,
     }
   }
 
@@ -209,27 +203,25 @@ export class MemoryManager {
       this.vectorStore.clear(),
       // Note: We don't clear structured store as it has more complex relationships
     ])
-
-    console.log('Memory cleared (vector store only)')
   }
 
   /**
    * Chunk content into smaller pieces for better retrieval
    */
   private chunkContent(
-    content: string, 
-    metadata: ChunkMetadata, 
+    content: string,
+    metadata: ChunkMetadata,
     options: MemoryUpsertOptions
   ): ContentChunk[] {
     const maxSize = options.chunk_size || this.config.max_chunk_size || 1000
     const overlap = options.chunk_overlap || this.config.chunk_overlap || 100
-    
+
     const chunks: ContentChunk[] = []
-    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0)
-    
+    const sentences = content.split(/[.!?]+/).filter((s) => s.trim().length > 0)
+
     let currentChunk = ''
     let chunkIndex = 0
-    
+
     for (const sentence of sentences) {
       const trimmedSentence = sentence.trim()
       if (trimmedSentence.length === 0) continue
@@ -238,11 +230,11 @@ export class MemoryManager {
       if (currentChunk.length + trimmedSentence.length > maxSize && currentChunk.length > 0) {
         chunks.push(this.createChunk(currentChunk, metadata, chunkIndex))
         chunkIndex++
-        
+
         // Start new chunk with overlap from previous
         const words = currentChunk.split(/\s+/)
         const overlapWords = words.slice(-Math.floor(overlap / 10)) // Rough overlap
-        currentChunk = overlapWords.join(' ') + ' ' + trimmedSentence
+        currentChunk = `${overlapWords.join(' ')} ${trimmedSentence}`
       } else {
         currentChunk += (currentChunk ? '. ' : '') + trimmedSentence
       }
@@ -261,7 +253,7 @@ export class MemoryManager {
    */
   private createChunk(text: string, metadata: ChunkMetadata, index: number): ContentChunk {
     const now = new Date()
-    
+
     return {
       id: uuidv4(),
       text: text.trim(),
@@ -269,10 +261,10 @@ export class MemoryManager {
         ...metadata,
         chunk_index: index,
         word_count: text.split(/\s+/).length,
-        chunk_type: this.inferChunkType(text)
+        chunk_type: this.inferChunkType(text),
       },
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     }
   }
 
@@ -297,7 +289,7 @@ export class MemoryManager {
    */
   private getMockSearchResults(query: string, k: number): MemoryMatch[] {
     const mockChunks: MemoryMatch[] = []
-    
+
     for (let i = 0; i < Math.min(k, 3); i++) {
       mockChunks.push({
         chunk: {
@@ -308,13 +300,13 @@ export class MemoryManager {
             source_url: `https://example.com/mock-${i + 1}`,
             chunk_type: 'paragraph',
             word_count: 25,
-            relevance_score: 0.8 - (i * 0.1)
+            relevance_score: 0.8 - i * 0.1,
           },
           createdAt: new Date(Date.now() - i * 86400000), // i days ago
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
-        similarity_score: 0.85 - (i * 0.1),
-        rank: i + 1
+        similarity_score: 0.85 - i * 0.1,
+        rank: i + 1,
       })
     }
 
@@ -328,7 +320,6 @@ export class MemoryManager {
     if (this.initialized) {
       await this.structuredStore.close()
       this.initialized = false
-      console.log('MemoryManager closed')
     }
   }
 }

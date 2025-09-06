@@ -31,7 +31,7 @@ RUN npm install
 COPY . .
 
 # Build using turbo (builds dependencies in correct order)
-RUN turbo build --filter=@agentic-seek/backend
+RUN turbo build --filter=@scout/backend
 
 FROM base AS runner
 

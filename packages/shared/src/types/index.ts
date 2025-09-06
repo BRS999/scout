@@ -1,4 +1,4 @@
-// Core types for AgenticSeek
+// Core types for Scout
 export interface Agent {
   id: string
   name: string
@@ -147,7 +147,7 @@ export enum ProviderType {
 }
 
 // Configuration types
-export interface AgenticSeekConfig {
+export interface ScoutConfig {
   llm: {
     provider: ProviderType
     model: string
@@ -189,32 +189,32 @@ export interface APIResponse {
 }
 
 // Error types
-export class AgenticSeekError extends Error {
+export class ScoutError extends Error {
   constructor(
     message: string,
     public code: string,
     public statusCode = 500
   ) {
     super(message)
-    this.name = 'AgenticSeekError'
+    this.name = 'ScoutError'
   }
 }
 
-export class ValidationError extends AgenticSeekError {
+export class ValidationError extends ScoutError {
   constructor(message: string) {
     super(message, 'VALIDATION_ERROR', 400)
     this.name = 'ValidationError'
   }
 }
 
-export class ExecutionError extends AgenticSeekError {
+export class ExecutionError extends ScoutError {
   constructor(message: string) {
     super(message, 'EXECUTION_ERROR', 500)
     this.name = 'ExecutionError'
   }
 }
 
-export class TimeoutError extends AgenticSeekError {
+export class TimeoutError extends ScoutError {
   constructor(message: string) {
     super(message, 'TIMEOUT_ERROR', 408)
     this.name = 'TimeoutError'
@@ -264,17 +264,7 @@ export interface AgentState {
   status: 'idle' | 'running' | 'completed' | 'error'
   current_task?: string
   progress?: number
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
-// Re-export memory types for convenience
-export type { 
-  ContentChunk,
-  ChunkMetadata, 
-  MemoryMatch,
-  MemoryConfig,
-  MemoryStats,
-  ResearchSession,
-  VectorSearchOptions,
-  MemoryUpsertOptions
-} from '@agentic-seek/memory'
+// Memory types are exported from @scout/memory package

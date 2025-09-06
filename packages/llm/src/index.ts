@@ -10,4 +10,4 @@ export type {
   LLMOptions,
   LLMResponse,
   ProviderType,
-} from '@agentic-seek/shared'
+} from '@scout/shared'

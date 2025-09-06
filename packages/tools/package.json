@@ -1,7 +1,7 @@
 {
-  "name": "@agentic-seek/tools",
+  "name": "@scout/tools",
   "version": "0.1.0",
-  "description": "Tool implementations for AgenticSeek agents",
+  "description": "Tool implementations for Scout agents",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -14,8 +14,8 @@
     "format:write": "biome format --write ."
   },
   "dependencies": {
-    "@agentic-seek/shared": "*",
-    "@agentic-seek/memory": "*",
+    "@scout/shared": "*",
+    "@scout/memory": "*",
     "axios": "^1.6.0",
     "sqlite3": "^5.1.0",
     "mysql2": "^3.6.0",

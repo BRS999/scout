@@ -1,1 +1,1 @@
-export { ReadabilityParser, readabilityParser, type ParsedContent } from './readability-parser'
+export { readabilityParser, type ParsedContent } from './readability-parser'

@@ -6,7 +6,7 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'AgenticSeek',
+  title: 'Scout',
   description: 'AI-powered agent system for coding and research',
 }
 
@@ -18,7 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider defaultTheme="system" storageKey="agentic-seek-theme">
+        <ThemeProvider defaultTheme="system" storageKey="scout-theme">
           {children}
         </ThemeProvider>
       </body>

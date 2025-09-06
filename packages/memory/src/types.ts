@@ -44,7 +44,7 @@ export interface VectorSearchOptions {
   query: string
   k?: number
   threshold?: number
-  filter?: Record<string, any>
+  filter?: Record<string, unknown>
   include_metadata?: boolean
 }
 

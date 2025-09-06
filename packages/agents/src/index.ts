@@ -5,5 +5,5 @@ export { BrowserAgent } from './browser'
 export { ResearchAgent } from './research'
 
 // Export types
-export type { Agent } from '@agentic-seek/shared'
+export type { Agent } from '@scout/shared'
 export type { ResearchQuery, ResearchResult } from './research'

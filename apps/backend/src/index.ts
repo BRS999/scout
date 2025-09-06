@@ -1,8 +1,8 @@
 import cors from '@fastify/cors'
+import { ResearchAgent } from '@scout/agents'
+import { WebSearch } from '@scout/tools'
 import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify'
 import { OpenAI } from 'openai'
-import { WebSearch } from '@agentic-seek/tools'
-import { ResearchAgent } from '@agentic-seek/agents'
 
 // Define types
 interface LLMMessage {
@@ -10,23 +10,12 @@ interface LLMMessage {
   content: string
 }
 
-// Mock implementations - keeping simple for now
-class PythonExecutor {
-  id = 'python_executor'
-  name = 'Python Executor'
-  async execute(_input: string) {
-    return { success: true, output: 'Mock Python output', executionTime: 100 }
-  }
+interface Tool {
+  id: string
+  execute: (input: unknown) => Promise<unknown>
 }
 
-class JavaScriptExecutor {
-  id = 'javascript_executor'
-  name = 'JavaScript Executor'
-  async execute(_input: string) {
-    return { success: true, output: 'Mock JavaScript output', executionTime: 100 }
-  }
-}
-
+// Tools and implementations
 
 class WebScraping {
   id = 'web_scraping'
@@ -44,100 +33,12 @@ class WebScraping {
   }
 }
 
-class CoderAgent {
-  name = 'Coder Agent'
-  tools: unknown[] = []
-
-  addTool(tool: unknown) {
-    this.tools.push(tool)
-  }
-
-  async process(query: unknown) {
-    const q = query as { content: string }
-    console.log('CoderAgent processing query:', q.content)
-    try {
-      // Check if this query might benefit from web search (e.g., latest library versions, current best practices)
-      const needsSearch = this.shouldUseSearch(q.content)
-
-      let systemPrompt =
-        'You are a specialized coding assistant. Help users with programming tasks, code review, debugging, and implementation. You have access to Python and JavaScript execution tools.'
-
-      if (needsSearch) {
-        systemPrompt +=
-          '\n\nYou also have access to web search capabilities. If the user is asking about current technologies, library versions, or recent developments, use the available search results to provide the most up-to-date information.'
-      }
-
-      const messages: LLMMessage[] = [
-        {
-          role: 'system',
-          content: systemPrompt,
-        },
-        {
-          role: 'user',
-          content: q.content,
-        },
-      ]
-
-      console.log('Making LLM call with messages:', messages)
-      const llmResponse = await llmProvider.chat(messages, {
-        temperature: 0.7,
-        maxTokens: 2048,
-      })
-
-      console.log('LLM response received:', `${llmResponse.content.substring(0, 100)}...`)
-      return {
-        answer: llmResponse.content,
-        reasoning: 'Generated response using LLM Studio with GPT-OSS and optional web search',
-        agentName: this.name,
-        success: true,
-        blocks: [],
-        status: 'completed',
-        executionTime: 500,
-      }
-    } catch (error) {
-      console.error('CoderAgent LLM error:', error)
-      console.error('Error details:', error instanceof Error ? error.stack : error)
-      return {
-        answer: `Error processing coding query: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        reasoning: 'LLM processing failed',
-        agentName: this.name,
-        success: false,
-        blocks: [],
-        status: 'error',
-        executionTime: 100,
-      }
-    }
-  }
-
-  private shouldUseSearch(query: string): boolean {
-    const searchKeywords = [
-      'latest',
-      'current',
-      'newest',
-      'recent',
-      'version',
-      'update',
-      'best practices',
-      'modern',
-      'popular',
-      'trending',
-      'framework',
-      'library',
-      'tool',
-      '2024',
-      '2025',
-    ]
-
-    const lowerQuery = query.toLowerCase()
-    return searchKeywords.some((keyword) => lowerQuery.includes(keyword))
-  }
-}
 
 class BrowserAgent {
   name = 'Browser Agent'
-  tools: unknown[] = []
+  tools: Tool[] = []
 
-  addTool(tool: unknown) {
+  addTool(tool: Tool) {
     this.tools.push(tool)
   }
 
@@ -148,13 +49,16 @@ class BrowserAgent {
       const searchQuery = await this.generateSearchQuery(q.content)
       console.log('Generated search query:', searchQuery)
 
-      const searchTool = this.tools.find((t: any) => t.id === 'web_search')
+      const searchTool = this.tools.find((t) => t.id === 'web_search')
       if (!searchTool) {
         throw new Error('Web search tool not available')
       }
 
       // Perform the search
-      const searchResults = await (searchTool as any).execute(searchQuery)
+      const searchResults = (await searchTool?.execute(searchQuery)) as {
+        success: boolean
+        output: unknown[]
+      }
 
       if (!(searchResults.success && searchResults.output) || searchResults.output.length === 0) {
         return {
@@ -169,7 +73,10 @@ class BrowserAgent {
       }
 
       // Use LLM to synthesize the results
-      const synthesisPrompt = this.createSynthesisPrompt(q.content, searchResults.output)
+      const synthesisPrompt = this.createSynthesisPrompt(
+        q.content,
+        searchResults.output as { title: string; snippet: string; link: string }[]
+      )
       const synthesisResult = await llmProvider.chat(
         [
           {
@@ -242,7 +149,10 @@ Return only the search query, nothing else.`
     }
   }
 
-  private createSynthesisPrompt(userQuery: string, searchResults: any[]): string {
+  private createSynthesisPrompt(
+    userQuery: string,
+    searchResults: Array<{ title: string; snippet: string; link: string }>
+  ): string {
     const resultsText = searchResults
       .slice(0, 8)
       .map(
@@ -273,22 +183,25 @@ Structure your response naturally and conversationally, as if you're explaining 
   }
 
   // Alternative LLM-powered method (commented out for now)
-  async processWithLLM(query: any) {
+  async processWithLLM(query: { content: string }) {
     try {
       // First perform web search
-      const searchTool = this.tools.find((t: any) => t.id === 'web_search')
-      let searchResults: any = { success: false, output: [] }
+      const searchTool = this.tools.find((t) => t.id === 'web_search')
+      let searchResults: { success: boolean; output: unknown[] } = { success: false, output: [] }
 
       if (searchTool) {
-        searchResults = await (searchTool as any).execute(query.content)
+        searchResults = (await searchTool.execute(query.content)) as {
+          success: boolean
+          output: unknown[]
+        }
       }
 
       // Prepare context from search results
       let searchContext = ''
       if (searchResults.success && searchResults.output && searchResults.output.length > 0) {
-        searchContext = searchResults.output
+        searchContext = (searchResults.output as { title: string; snippet: string; link: string }[])
           .map(
-            (result: any, index: number) =>
+            (result, index: number) =>
               `${index + 1}. ${result.title}\n   ${result.snippet}\n   Source: ${result.link}`
           )
           .join('\n\n')
@@ -302,7 +215,7 @@ Structure your response naturally and conversationally, as if you're explaining 
         },
         {
           role: 'user',
-          content: `Query: ${(query as any).content}\n\n${searchContext ? `Search Results:\n${searchContext}` : 'No search results available.'}\n\nPlease provide a comprehensive answer based on the available information.`,
+          content: `Query: ${query.content}\n\n${searchContext ? `Search Results:\n${searchContext}` : 'No search results available.'}\n\nPlease provide a comprehensive answer based on the available information.`,
         },
       ]
 
@@ -404,13 +317,18 @@ class SearxNGTool {
       const outputArray = Array.isArray(results.output) ? results.output : []
       const formattedResults = outputArray
         .slice(0, maxResults)
-        .map((result: any, index: number) => ({
-          rank: index + 1,
-          title: result.title,
-          snippet: result.snippet,
-          url: result.link,
-          source: result.source,
-        }))
+        .map(
+          (
+            result: { title: string; snippet: string; link: string; source?: string },
+            index: number
+          ) => ({
+            rank: index + 1,
+            title: result.title,
+            snippet: result.snippet,
+            url: result.link,
+            source: result.source,
+          })
+        )
 
       return {
         success: true,
@@ -435,7 +353,7 @@ class SimpleLLMProvider {
   private client: OpenAI
   private searxngTool: SearxNGTool
 
-  constructor(baseUrl = 'http://localhost:1234/v1', searxngTool: SearxNGTool) {
+  constructor(baseUrl: string, searxngTool: SearxNGTool) {
     this.client = new OpenAI({
       apiKey: 'not-needed-for-local',
       baseURL: baseUrl,
@@ -553,8 +471,6 @@ Return only the search query, no explanations.`
 }
 
 // Initialize tools first
-const pythonExecutor = new PythonExecutor()
-const jsExecutor = new JavaScriptExecutor()
 const webSearch = new WebSearch(process.env.SEARXNG_BASE_URL)
 const webScraping = new WebScraping()
 
@@ -568,22 +484,18 @@ const llmProvider = new SimpleLLMProvider(
 )
 
 // Initialize agents
-const coderAgent = new CoderAgent()
 const browserAgent = new BrowserAgent()
 const researchAgent = new ResearchAgent({
   search: {
     searxng_url: process.env.SEARXNG_BASE_URL || 'http://localhost:8080',
-    max_results: 10
+    max_results: 10,
   },
   memory: {
-    sqlite_path: './data/research_memory.db'
-  }
+    sqlite_path: './data/research_memory.db',
+  },
 })
 
 // Register tools with agents
-coderAgent.addTool(pythonExecutor)
-coderAgent.addTool(jsExecutor)
-
 browserAgent.addTool(webSearch)
 browserAgent.addTool(webScraping)
 
@@ -608,7 +520,7 @@ fastify.post('/query', async (request: FastifyRequest, reply: FastifyReply) => {
     }
 
     // Intelligent agent routing based on query analysis
-    let selectedAgent: CoderAgent | BrowserAgent = coderAgent
+    let selectedAgent: BrowserAgent = browserAgent
     const lowerQuery = queryText.toLowerCase()
 
     // Keywords that indicate web search is needed
@@ -676,9 +588,9 @@ fastify.post('/query', async (request: FastifyRequest, reply: FastifyReply) => {
 
     const isCodingQuery = codingKeywords.some((keyword) => lowerQuery.includes(keyword))
 
-    // Route to BrowserAgent for web search queries, keep with CoderAgent for coding tasks
-    if (needsSearch && !isCodingQuery) {
-      selectedAgent = browserAgent
+    // Use ResearchAgent for research queries, BrowserAgent for general queries
+    if (needsSearch) {
+      selectedAgent = researchAgent as any // Temporary type assertion
     }
 
     const result = await selectedAgent.process(query)
@@ -738,14 +650,14 @@ fastify.post('/research', async (request: FastifyRequest, reply: FastifyReply) =
 
   try {
     const startTime = Date.now()
-    
+
     // Perform research using the research agent
     const result = await researchAgent.research({
       question,
       description,
       tags,
       require_recent,
-      depth
+      depth,
     })
 
     const executionTime = Date.now() - startTime
@@ -763,8 +675,8 @@ fastify.post('/research', async (request: FastifyRequest, reply: FastifyReply) =
         chunks_stored: result.chunks_stored,
         metadata: {
           ...result.metadata,
-          total_execution_time: executionTime
-        }
+          total_execution_time: executionTime,
+        },
       },
       timestamp: new Date().toISOString(),
     }
@@ -783,14 +695,14 @@ fastify.get('/research/sessions', async (_request: FastifyRequest, _reply: Fasti
     const sessions = await researchAgent.getSessionHistory(20)
     return {
       sessions,
-      count: sessions.length
+      count: sessions.length,
     }
   } catch (error) {
     console.error('Failed to get research sessions:', error)
     return {
       sessions: [],
       count: 0,
-      error: 'Failed to load sessions'
+      error: 'Failed to load sessions',
     }
   }
 })
@@ -800,7 +712,7 @@ fastify.get('/research/stats', async (_request: FastifyRequest, _reply: FastifyR
     const stats = await researchAgent.getMemoryStats()
     return {
       memory_stats: stats,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     }
   } catch (error) {
     console.error('Failed to get memory stats:', error)
@@ -811,9 +723,9 @@ fastify.get('/research/stats', async (_request: FastifyRequest, _reply: FastifyR
         total_sources: 0,
         storage_size_mb: 0,
         oldest_chunk: new Date(),
-        newest_chunk: new Date()
+        newest_chunk: new Date(),
       },
-      error: 'Failed to load stats'
+      error: 'Failed to load stats',
     }
   }
 })
@@ -832,7 +744,7 @@ const start = async () => {
 
     const port = process.env.PORT || 7777
     await fastify.listen({ port: Number(port), host: '0.0.0.0' })
-    console.log(`🚀 AgenticSeek API server listening on port ${port}`)
+    console.log(`🚀 Scout API server listening on port ${port}`)
   } catch (err) {
     console.error('Server error:', err)
     process.exit(1)
