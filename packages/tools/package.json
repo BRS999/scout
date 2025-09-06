@@ -21,7 +21,7 @@
     "mysql2": "^3.6.0",
     "pg": "^8.11.0",
     "sharp": "^0.33.0",
-    "@mozilla/readability": "^0.5.0",
+    "@mozilla/readability": "^0.6.0",
     "jsdom": "^23.0.1"
   },
   "devDependencies": {
