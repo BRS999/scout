@@ -1,8 +1,6 @@
 # Scout
 
 [![CI](https://github.com/brs999/scout/actions/workflows/ci.yml/badge.svg)](https://github.com/brs999/scout/actions/workflows/ci.yml)
-[![Lint and Format](https://github.com/brs999/scout/actions/workflows/ci.yml/badge.svg)](https://github.com/brs999/scout/actions/workflows/ci.yml)
-[![Docker Build](https://github.com/brs999/scout/actions/workflows/ci.yml/badge.svg)](https://github.com/brs999/scout/actions/workflows/ci.yml)
 
 A modern, TypeScript-based AI agent system using a monorepo architecture with Node.js and Biome.
 
