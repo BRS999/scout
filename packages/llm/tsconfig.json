@@ -4,7 +4,7 @@
     "outDir": "./dist",
     "baseUrl": ".",
     "paths": {
-      "@agentic-seek/*": ["../*/dist"]
+      "@scout/*": ["../*/dist"]
     },
     "skipLibCheck": true
   },
