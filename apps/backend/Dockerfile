@@ -26,7 +26,7 @@ RUN npm install --legacy-peer-deps
 COPY . .
 
 # Build using turbo (builds dependencies in correct order)
-RUN turbo build --filter=@scout/backend
+RUN turbo build --scope=@scout/backend --include-dependencies
 
 FROM base AS runner
 

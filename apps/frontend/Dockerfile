@@ -31,7 +31,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build using turbo (builds dependencies in correct order)
-RUN turbo build --filter=@scout/frontend
+RUN turbo build --scope=@scout/frontend --include-dependencies
 
 FROM base AS runner
 
