@@ -2,9 +2,34 @@
 
 [![CI](https://github.com/brs999/scout/actions/workflows/ci.yml/badge.svg)](https://github.com/brs999/scout/actions/workflows/ci.yml)
 
-A modern, TypeScript-based AI agent system using a monorepo architecture with Node.js, Biome, and ChromaDB.
+A powerful, privacy focused AI research assistant that runs entirely on your local machine. Use your own LLM with intelligent web research capabilities and persistent memory for enhanced productivity.
 
-## 🚀 Features
+## Why Scout?
+
+### Privacy First & Local
+- **Complete data control**: Your conversations and research stay on your machine
+- **No API keys required**: Use LM Studio with any local LLM (ChatGPT OSS, Mistral, etc.)
+- **Cost-effective**: No per-token API charges or usage limits
+
+### Advanced Research Capabilities
+- **Intelligent web search**: Multi-source analysis with SearX integration
+- **Smart content extraction**: Automatic article parsing and summarization
+- **Research synthesis**: Combines information from multiple sources intelligently
+- **Source verification**: Cross-references information for accuracy
+
+### Persistent Memory System
+- **Semantic memory**: Remembers context across conversations using vector embeddings
+- **Personal knowledge base**: Build your own searchable knowledge repository
+- **Contextual recall**: Retrieves relevant past information automatically
+- **Learning over time**: Gets smarter with each interaction
+
+### Developer-Friendly
+- **Modern TypeScript**: Full type safety with latest TypeScript features
+- **Monorepo architecture**: Clean, maintainable codebase with Turborepo
+- **Fast development**: Hot reload, instant linting with Biome
+- **Docker ready**: One-command deployment with all dependencies
+
+## Features
 
 - **TypeScript First**: Full type safety with modern TypeScript
 - **Monorepo Architecture**: Organized packages for better maintainability
@@ -15,7 +40,12 @@ A modern, TypeScript-based AI agent system using a monorepo architecture with No
 - **Fast Linting**: Biome for lightning-fast code quality checks
 - **Docker Ready**: Complete containerized deployment with SearX and Redis
 
-## 📁 Project Structure
+## Demo
+
+![Scout demo](assets/scout.gif)
+
+
+## Project Structure
 
 ```
 scout/
@@ -44,7 +74,7 @@ scout/
 └── package.json         # Root package configuration
 ```
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Runtime**: Node.js 18+
 - **Language**: TypeScript 5.0+
@@ -58,14 +88,16 @@ scout/
 - **Web Scraping**: Readability.js
 - **LLM Integration**: LM Studio (local) or OpenAI API 
 
-## 🚀 Quick Start
+## Quick Start
+
+Get started with Scout in minutes and maintain complete privacy with your local LLM setup.
 
 ### Prerequisites
 
 - **Node.js 18+**
 - **npm** (comes with Node.js)
 - **Docker & Docker Compose**
-- **LM Studio** (for local LLM) OR **OpenAI API Key**
+- **LM Studio** (recommended for local LLM) OR **OpenAI API Key**
 
 ### Installation
 
@@ -74,23 +106,33 @@ scout/
 git clone <repository-url>
 cd scout
 
-# Install dependencies
+# Install all dependencies
 npm install
 ```
 
-2. **Environment Configuration**:
+2. **Local LLM Setup (Recommended)**:
 ```bash
-# Create .env file with required variables
-cp .env.example .env
-
-# Edit .env with your configuration
-# Required: LM Studio running locally (default) OR OPENAI_API_KEY
-# Optional: Custom ChromaDB URL, SearX URL, model name, etc.
+# Download and install LM Studio from https://lmstudio.ai/
+# Download any compatible model (Llama 2/3, Mistral, etc.)
+# Start LM Studio and load your model
+# Note: Scout will automatically connect to LM Studio at localhost:1234
 ```
 
-3. **Start services**:
+3. **Environment Configuration**:
 ```bash
-# Start Docker services (reuses original SearX)
+# Copy environment template
+cp .env.example .env
+
+# For local LLM (default):
+# Just ensure LM Studio is running - no API keys needed!
+
+# For OpenAI (optional):
+# OPENAI_API_KEY=your_api_key_here
+```
+
+4. **Start Services**:
+```bash
+# Start supporting services (SearX search, ChromaDB)
 cd docker
 docker-compose up -d
 
@@ -98,53 +140,132 @@ docker-compose up -d
 ./start-services.sh
 ```
 
-4. **Development**:
+5. **Launch Scout**:
 ```bash
-# Start all packages in development mode
+# Start the application
 npm run dev
 
-# Or run specific packages
-cd packages/core && npm run dev
-cd apps/backend && npm run dev
-cd apps/frontend && npm run dev
+# Open http://localhost:3000 in your browser
 ```
 
-## 📦 Packages
+### What You Get
+
+- **Privacy-First AI**: Your conversations never leave your machine
+- **Intelligent Research**: Web search and analysis capabilities
+- **Persistent Memory**: Knowledge that grows with each session
+- **Local Control**: No usage costs, no rate limits, no data sharing
+
+### First Research Task
+
+Once running, try asking Scout:
+- "Research the latest developments in renewable energy"
+- "Analyze the pros and cons of different JavaScript frameworks"
+- "Help me understand quantum computing basics"
+
+## Packages
 
 ### `@scout/agent`
-LangChain-powered agent with integrated tool ecosystem for web research and analysis.
+LangChain-powered intelligent agent with advanced web research capabilities and integrated tool ecosystem.
+
+**Research Capabilities:**
+- **Multi-source analysis**: Simultaneously searches and analyzes multiple sources
+- **Content synthesis**: Intelligently combines information from diverse sources
+- **Source evaluation**: Assesses credibility and cross-references information
+- **Deep analysis**: Goes beyond surface-level answers with contextual research
+- **Adaptive questioning**: Asks follow-up questions to refine research scope
 
 **Key Features:**
-- Web search and content scraping
-- Research capabilities with multi-source analysis
-- Conversation recording and analysis
-- Configurable LLM model integration
+- **Web scraping**: Clean content extraction using Readability.js
+- **Search integration**: Powered by SearX for privacy-focused web search
+- **Conversation memory**: Records and analyzes conversation history
+- **Tool orchestration**: Coordinates multiple research tools automatically
+- **Local LLM integration**: Works with any LM Studio-compatible model
+
+**Research Use Cases:**
+- Academic research and literature reviews
+- Technical documentation analysis
+- Market research and competitive analysis
+- Fact-checking and source verification
+- Knowledge synthesis from multiple sources
 
 ```typescript
 import { makeAgent } from '@scout/agent';
 
 const agent = await makeAgent();
-// Agent with web search, scraping, and research capabilities
+
+// Research with intelligent source analysis
+const research = await agent.research({
+  query: "Latest developments in quantum computing",
+  sources: 5,
+  depth: "comprehensive"
+});
+
+// Get synthesized analysis
+const analysis = await research.synthesize();
 ```
 
 ### `@scout/memory`
-ChromaDB-powered vector storage for semantic memory management and retrieval.
+ChromaDB-powered vector storage for intelligent, persistent memory management that learns and adapts over time.
 
 **Key Features:**
-- Vector-based semantic search
-- Persistent memory storage
-- Memory upsert and retrieval operations
-- ChromaDB integration with configurable embeddings
+- **Semantic search**: Find information by meaning, not just keywords
+- **Persistent storage**: Your knowledge base grows with each conversation
+- **Context awareness**: Remembers preferences, patterns, and past interactions
+- **Vector embeddings**: Advanced similarity matching for intelligent recall
+- **Metadata filtering**: Search with tags, timestamps, and custom attributes
+
+**Memory Benefits:**
+- **Continuous learning**: Scout gets smarter with each interaction
+- **Personal context**: Maintains your preferences and working style
+- **Knowledge accumulation**: Build a searchable personal research database
+- **Cross-session continuity**: Pick up conversations exactly where you left off
 
 ```typescript
 import { getMemory } from '@scout/memory';
 
 const memory = await getMemory();
-await memory.upsert('User prefers dark mode', { type: 'preference' });
-const results = await memory.search('user preferences');
+
+// Store research findings with metadata
+await memory.upsert('Quantum computing breakthrough in error correction', {
+  type: 'research',
+  category: 'technology',
+  timestamp: new Date(),
+  source: 'Nature Journal'
+});
+
+// Intelligent search across your knowledge base
+const results = await memory.search('quantum error correction', {
+  filter: { category: 'technology' },
+  limit: 5
+});
 ```
 
-## 🔧 Development
+## Use Cases
+
+### Research & Analysis
+- **Academic Research**: Literature reviews, paper analysis, citation tracking
+- **Market Research**: Competitive analysis, trend identification, industry insights
+- **Technical Research**: API documentation, framework comparisons, best practices
+- **News Analysis**: Current events synthesis, fact-checking, source verification
+
+### Professional Productivity
+- **Knowledge Management**: Build personal knowledge bases and research archives
+- **Content Creation**: Research-backed writing, article development, blog posts
+- **Decision Support**: Data-driven analysis for business decisions
+- **Learning**: Interactive study sessions with persistent knowledge retention
+
+### Developer Workflows
+- **Code Research**: Framework analysis, library comparisons, implementation research
+- **Documentation**: Technical writing, API documentation, tutorial creation
+- **Problem Solving**: Complex debugging with historical context and research
+- **Architecture Design**: Research-driven system design and technology evaluation
+
+### Personal Use
+- **Learning Projects**: Deep dives into new topics with structured knowledge building
+- **Hobby Research**: Specialized interests, historical research, creative projects
+- **Daily Assistance**: Quick research tasks, information synthesis, memory augmentation
+
+## Development
 
 ### Code Quality
 
@@ -173,7 +294,7 @@ npm run build
 npm run clean
 ```
 
-## 🤝 Contributing
+## Contributing
 
 1. **Setup development environment**:
 ```bash
@@ -203,16 +324,23 @@ npm run dev
 # Open browser at http://localhost:3000
 ```
 
-## 📈 Key Features
+## Architecture Overview
 
-- **Vector Memory**: ChromaDB-powered semantic search and storage
-- **Intelligent Agent**: LangChain-powered agent with web research capabilities
-- **Web Scraping**: Content extraction with Readability.js
-- **Search Integration**: SearX-powered web search
-- **Real-time Chat**: WebSocket-based chat interface
-- **Docker Ready**: Complete containerized deployment
+Scout combines three core components for powerful, private AI research:
 
-## 🤝 Contributing
+### Memory System (ChromaDB)
+Persistent vector storage that learns from every interaction, enabling contextual recall and knowledge accumulation across sessions.
+
+### Research Agent (LangChain)
+Intelligent agent that orchestrates web search, content analysis, and multi-source synthesis for comprehensive research capabilities.
+
+### Web Interface (Next.js)
+Real-time chat interface for seamless interaction, with WebSocket support for instant responses and conversation continuity.
+
+### Containerized Services
+Docker-based deployment with SearX (privacy-focused search) and Redis for optimal performance and easy setup.
+
+## Contributing
 
 We welcome contributions! Please:
 
@@ -222,7 +350,7 @@ We welcome contributions! Please:
 4. Add tests if applicable
 5. Submit a pull request
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **Original AgenticSeek**: For the inspiration and core concepts
 - **SearX**: For the excellent search engine

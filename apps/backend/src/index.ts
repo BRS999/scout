@@ -89,6 +89,120 @@ fastify.post('/api/agent', async (request: FastifyRequest, reply: FastifyReply) 
   }
 })
 
+// Streaming agent endpoint
+fastify.post('/api/agent/stream', async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { messages } = (request.body as { messages?: { role: string; content: string }[] }) ?? {
+      messages: [],
+    }
+
+    // Initialize agent on first request
+    if (!langchainAgent) {
+      console.log('🚀 Initializing LangChain agent...')
+      // Set environment variables for the agent
+      process.env.LMSTUDIO_URL = process.env.LMSTUDIO_URL || 'http://127.0.0.1:1234/v1'
+      process.env.LOCAL_MODEL = process.env.LOCAL_MODEL || 'openai/gpt-oss-20b'
+      console.log('Environment variables set:', {
+        LMSTUDIO_URL: process.env.LMSTUDIO_URL,
+        LOCAL_MODEL: process.env.LOCAL_MODEL,
+      })
+      langchainAgent = await makeAgent()
+      console.log('✅ LangChain agent ready')
+    }
+
+    // Convert UI messages to AgentExecutor input (use last user message as input)
+    const lastUserMessage = messages?.filter((m) => m.role === 'user').pop()
+    const input = lastUserMessage?.content ?? ''
+
+    if (!input) {
+      return reply.code(400).send({ error: 'No user message found' })
+    }
+
+    console.log(`🤖 Processing streaming agent request: "${input.substring(0, 100)}..."`)
+
+    // Set headers for SSE
+    reply.raw.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    })
+
+    const messageId = generateId()
+    const timestamp = new Date().toISOString()
+
+    // Send initial message
+    reply.raw.write(
+      `data: ${JSON.stringify({
+        type: 'start',
+        id: messageId,
+        role: 'assistant',
+        timestamp,
+      })}\n\n`
+    )
+
+    try {
+      // Execute agent with streaming
+      const result = await langchainAgent.invoke({
+        input,
+      })
+
+      // Send the complete response as chunks
+      const content = result.output ?? 'No response generated'
+      const words = content.split(' ')
+
+      // Stream word by word for better UX
+      for (let i = 0; i < words.length; i++) {
+        const chunk = i === 0 ? words[i] : ` ${words[i]}`
+        reply.raw.write(
+          `data: ${JSON.stringify({
+            type: 'chunk',
+            id: messageId,
+            content: chunk,
+          })}\n\n`
+        )
+
+        // Small delay to simulate streaming
+        await new Promise((resolve) => setTimeout(resolve, 50))
+      }
+
+      // Send completion message
+      reply.raw.write(
+        `data: ${JSON.stringify({
+          type: 'done',
+          id: messageId,
+          timestamp: new Date().toISOString(),
+          // Include intermediate steps for debugging if available
+          ...(result.intermediateSteps && {
+            intermediateSteps: result.intermediateSteps,
+          }),
+        })}\n\n`
+      )
+
+      console.log(`✅ Streaming agent response completed (${content.length} chars)`)
+    } catch (streamError) {
+      console.error('❌ Streaming agent error:', streamError)
+      reply.raw.write(
+        `data: ${JSON.stringify({
+          type: 'error',
+          id: messageId,
+          error: 'Agent processing failed',
+          message: streamError instanceof Error ? streamError.message : 'Unknown error',
+        })}\n\n`
+      )
+    }
+
+    reply.raw.end()
+  } catch (error) {
+    console.error('❌ Streaming setup error:', error)
+    return reply.code(500).send({
+      error: 'Streaming setup failed',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    })
+  }
+})
+
 // Start server
 const start = async () => {
   try {

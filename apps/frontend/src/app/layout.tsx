@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Scout',
-  description: 'AI-powered agent system for coding and research',
+  description: 'AI powered agent system',
 }
 
 export default function RootLayout({

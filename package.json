@@ -9,7 +9,10 @@
     "dev": "turbo dev",
     "lint": "npx biome check .",
     "lint:fix": "npx biome check . --write",
-    "test": "turbo test",
+    "test": "vitest --run",
+    "test:watch": "vitest --watch",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
     "clean": "turbo clean",
     "type-check": "turbo type-check"
   },
@@ -26,9 +29,16 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@types/node": "^24.3.1",
+    "@testing-library/jest-dom": "^6.1.0",
+    "@testing-library/react": "^14.1.0",
+    "@testing-library/user-event": "^14.5.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "jsdom": "^23.0.0",
     "tsx": "^4.x",
     "turbo": "^2.5.6",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0"
   },
   "optionalDependencies": {
     "@biomejs/cli-linux-x64": "^1.9.4",
