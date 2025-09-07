@@ -1,0 +1,151 @@
+services:
+  redis:
+    container_name: scout-redis
+    image: docker.io/valkey/valkey:8-alpine
+    command: valkey-server --save 30 1 --loglevel warning
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "1"
+    networks:
+      - scout-net
+
+  searxng:
+    container_name: scout-searxng
+    image: docker.io/searxng/searxng:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../searxng:/etc/searxng:rw,z
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+      - SEARXNG_SECRET_KEY=${SEARXNG_SECRET_KEY:-changeme}
+      - UWSGI_WORKERS=4
+      - UWSGI_THREADS=4
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "1"
+    depends_on:
+      - redis
+    networks:
+      - scout-net
+
+  chromadb:
+    container_name: scout-chromadb
+    image: ghcr.io/chroma-core/chroma:latest
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - CHROMA_SERVER_AUTH_ENABLED=false
+      - PERSIST_DIRECTORY=/chroma
+    volumes:
+      - chroma-data:/chroma
+    networks:
+      - scout-net
+
+  backend:
+    container_name: scout-backend
+    build:
+      context: ..
+      dockerfile: ./apps/backend/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8777:7777"
+    env_file:
+      - ../.env
+    environment:
+      - NODE_ENV=production
+      - PORT=7777
+      - HOST=0.0.0.0
+      - SEARNX_URL=http://searxng:8080
+      - SEARXNG_BASE_URL=http://searxng:8080
+      - CHROMADB_URL=http://chromadb:8000
+      - SQLITE_PATH=/data/memory.db
+    depends_on:
+      - searxng
+      - chromadb
+    networks:
+      - scout-net
+    volumes:
+      - backend-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7777/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    container_name: scout-frontend
+    build:
+      context: ..
+      dockerfile: ./apps/frontend/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    env_file:
+      - ../.env
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - HOSTNAME=0.0.0.0
+      - NEXT_PUBLIC_BACKEND_URL=http://backend:7777
+    depends_on:
+      - backend
+    networks:
+      - scout-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 50s
+  
+volumes:
+  redis-data:
+  backend-data:
+  chroma-data:
+
+networks:
+  scout-net:
+    driver: bridge
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  

@@ -1,0 +1,48 @@
+# Docker build context exclusions
+# Node.js dependencies (will be installed during build)
+node_modules
+packages/*/node_modules
+apps/*/node_modules
+
+# Build outputs (will be generated during build)  
+dist
+out
+.turbo
+apps/frontend/.next
+apps/frontend/out
+apps/backend/dist
+
+# Development and tooling files
+.git
+.gitignore
+.env.local
+.env.development
+.env.test
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Testing and coverage
+coverage/
+.nyc_output
+test-results/
+
+# Documentation (not needed in container)
+*.md
+!README.md
+
+# Local development
+.env.example
+docker-compose.yml
+docker-compose.override.yml
+
+# External services
+searxng/*

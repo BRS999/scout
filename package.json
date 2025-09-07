@@ -1,0 +1,54 @@
+{
+  "name": "scout",
+  "version": "0.1.0",
+  "description": "TypeScript-based AI agent system inspired by Scout",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "npx biome check .",
+    "lint:fix": "npx biome check . --write",
+    "test": "vitest --run",
+    "test:watch": "vitest --watch",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "clean": "turbo clean",
+    "type-check": "turbo type-check"
+  },
+  "dependencies": {
+    "@langchain/community": "0.2.31",
+    "@langchain/core": "0.3.70",
+    "@langchain/openai": "0.6.11",
+    "@mozilla/readability": "0.5.0",
+    "jsdom": "24.1.1",
+    "langchain": "0.3.29",
+    "openai": "4.67.3",
+    "zod": "3.23.8"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^24.3.1",
+    "@testing-library/jest-dom": "^6.1.0",
+    "@testing-library/react": "^14.1.0",
+    "@testing-library/user-event": "^14.5.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "jsdom": "^23.0.0",
+    "tsx": "^4.x",
+    "turbo": "^2.5.6",
+    "typescript": "^5.9.2",
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "optionalDependencies": {
+    "@biomejs/cli-linux-x64": "^1.9.4",
+    "@biomejs/cli-darwin-x64": "^1.9.4",
+    "@biomejs/cli-darwin-arm64": "^1.9.4",
+    "@biomejs/cli-win32-x64": "^1.9.4"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "packageManager": "npm@11.5.1"
+}
