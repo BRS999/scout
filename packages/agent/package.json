@@ -1,5 +1,5 @@
 {
-  "name": "@scout/agent-langchain",
+  "name": "@scout/agent",
   "version": "0.1.0",
   "description": "LangChain.js-powered agent for Scout",
   "main": "dist/index.js",

@@ -30,6 +30,12 @@
     "turbo": "^2.5.6",
     "typescript": "^5.9.2"
   },
+  "optionalDependencies": {
+    "@biomejs/cli-linux-x64": "^1.9.4",
+    "@biomejs/cli-darwin-x64": "^1.9.4",
+    "@biomejs/cli-darwin-arm64": "^1.9.4",
+    "@biomejs/cli-win32-x64": "^1.9.4"
+  },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
