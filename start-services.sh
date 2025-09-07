@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Scout Docker Launcher
-# This script launches the Docker setup from the docker/ directory
+# Scout Services Starter
+# Simple script to start Scout services for non-technical users
 
-echo "🚀 Starting Scout with Docker..."
+echo "🚀 Starting Scout services..."
 echo ""
 
 # Change to docker directory and run the startup script

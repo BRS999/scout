@@ -83,7 +83,7 @@
       "**/packages/agents/src/*.js",
       "**/packages/core/src/*.js",
       "**/packages/llm/src/*.js",
-      "**/packages/agent-langchain/src/*.js"
+      "**/packages/agent/src/*.js"
     ]
   },
   "overrides": [

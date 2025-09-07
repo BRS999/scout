@@ -1,4 +1,4 @@
-FROM node:18-alpine AS base
+FROM node:24-alpine AS base
 
 # Install dependencies for building native modules  
 RUN apk add --no-cache libc6-compat curl bash
@@ -10,28 +10,34 @@ RUN npm install -g turbo@2.5.6
 
 FROM base AS builder
 
-# Copy workspace configuration
-COPY package.json turbo.json tsconfig.base.json ./
+# Copy entire monorepo for pruning
+COPY . .
 
-# Copy all package.json files for dependency resolution
-COPY packages/agent-langchain/package.json ./packages/agent-langchain/
-COPY packages/memory/package.json ./packages/memory/
-COPY apps/backend/package.json ./apps/backend/
-COPY apps/frontend/package.json ./apps/frontend/
+# Generate a partial monorepo with a pruned lockfile for frontend workspace
+RUN turbo prune @scout/frontend --docker
 
-# Install dependencies (workspace-aware)
-# Use legacy peer deps to resolve LangChain dependency conflicts
+FROM base AS installer
+
+# First install dependencies (as they change less often)
+COPY --from=builder /app/out/json/ .
+COPY --from=builder /app/out/package-lock.json ./package-lock.json
 RUN npm install --legacy-peer-deps
 
-# Copy source code
-COPY . .
+# Build the project and dependencies
+COPY --from=builder /app/out/full/ .
+# Ensure tsconfig.base.json is available for TypeScript builds
+COPY --from=builder /app/tsconfig.base.json ./tsconfig.base.json
 
 # Next.js collects completely anonymous telemetry data about general usage
 # Learn more here: https://nextjs.org/docs/pages/api-reference/next-config-js/output
-# Uncomment the following line to disable telemetry at build time
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build using turbo (builds dependencies in correct order)
+# Add build arguments for remote caching (only if provided)
+ARG TURBO_TEAM=""
+ARG TURBO_TOKEN=""
+ENV TURBO_TEAM=$TURBO_TEAM
+ENV TURBO_TOKEN=$TURBO_TOKEN
+
 RUN turbo build --filter=@scout/frontend
 
 FROM base AS runner
@@ -46,11 +52,11 @@ RUN adduser --system --uid 1001 nextjs
 
 # Copy built application
 # Copy the standalone server bundle to the same paths it was built with
-COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/.next/standalone ./
+COPY --from=installer --chown=nextjs:nodejs /app/apps/frontend/.next/standalone ./
 # Important: static assets must live alongside server.js under apps/frontend/.next
-COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/.next/static ./apps/frontend/.next/static
+COPY --from=installer --chown=nextjs:nodejs /app/apps/frontend/.next/static ./apps/frontend/.next/static
 # Public assets (if needed by runtime)
-COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/public ./apps/frontend/public
+COPY --from=installer --chown=nextjs:nodejs /app/apps/frontend/public ./apps/frontend/public
 
 USER nextjs
 

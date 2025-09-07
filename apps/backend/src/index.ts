@@ -1,6 +1,6 @@
 import 'dotenv/config'
 import cors from '@fastify/cors'
-import { makeAgent } from '@scout/agent-langchain'
+import { makeAgent } from '@scout/agent'
 import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify'
 
 function generateId(): string {
