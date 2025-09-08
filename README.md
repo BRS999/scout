@@ -116,18 +116,42 @@ npm install
 ```
 
 3. **Environment Configuration**:
+
+**For Local Development:**
 ```bash
-# Copy environment template
+# The .env file is already configured for local development
+# Default settings work with LM Studio at localhost:1234
+# No changes needed for basic local setup!
+
+# Optional: Copy template for customization
 cp .env.example .env
 
-# For local LLM (default):
-# Just ensure LM Studio is running - no API keys needed!
-
-# For OpenAI (optional):
-# OPENAI_API_KEY=your_api_key_here
+# For OpenAI instead of LM Studio (optional):
+# Edit .env and set: OPENAI_API_KEY=your_api_key_here
 ```
 
-4. **Start Services**:
+**For Docker Deployment:**
+```bash
+# Environment variables are configured directly in docker-compose.yml
+# Edit docker/docker-compose.yml in the backend service's environment section:
+
+environment:
+  # LM Studio connection (from host)
+  - LMSTUDIO_URL=http://host.docker.internal:1234/v1
+  # Database and external services (Docker service names)
+  - CHROMADB_URL=http://chromadb:8000
+  - SEARNX_URL=http://searxng:8080
+  # ... other variables
+
+# Key variables to modify:
+# - LMSTUDIO_URL: Change if LM Studio runs on different port
+# - CHROMADB_URL: Uses Docker service name for container networking
+# - SEARNX_URL: Uses Docker service name for container networking
+```
+
+4. **Choose Your Deployment Method**:
+
+**Option A: Local Development (Recommended for Development)**
 ```bash
 # Start supporting services (SearX search, ChromaDB)
 cd docker
@@ -135,14 +159,36 @@ docker-compose up -d
 
 # Or use the convenience script
 ./start-services.sh
+
+# Then start the app locally
+npm run dev
+```
+
+**Option B: Full Docker Deployment**
+```bash
+# Start everything in Docker containers
+cd docker
+docker-compose up -d
+
+# App will be available at http://localhost:3001 (frontend)
+# Backend API at http://localhost:8777
 ```
 
 5. **Launch Scout**:
+
+**For Local Development:**
 ```bash
 # Start the application
 npm run dev
 
 # Open http://localhost:3000 in your browser
+```
+
+**For Docker Deployment:**
+```bash
+# Applications will be available at:
+# Frontend: http://localhost:3001
+# Backend API: http://localhost:8777
 ```
 
 ### What You Get
@@ -151,6 +197,8 @@ npm run dev
 - **Intelligent Research**: Web search and analysis capabilities
 - **Persistent Memory**: Knowledge that grows with each session
 - **Local Control**: No usage costs, no rate limits, no data sharing
+- **Flexible Deployment**: Run locally for development or fully containerized
+- **Docker Ready**: Complete containerized deployment with all dependencies
 
 ### First Research Task
 
@@ -309,10 +357,11 @@ npm run format
 
 4. **Update documentation**
 
-### Quick Development
+### Quick Development Workflows
 
+**Local Development Workflow:**
 ```bash
-# Start all services with Docker
+# Start supporting services
 cd docker && docker-compose up -d
 
 # Start development servers
@@ -320,6 +369,26 @@ npm run dev
 
 # Open browser at http://localhost:3000
 ```
+
+**Docker Development Workflow:**
+```bash
+# Start everything in containers
+cd docker && docker-compose up -d
+
+# Access at http://localhost:3001 (frontend)
+# Backend API at http://localhost:8777
+```
+
+**Common Environment Customizations:**
+
+**For Local Development (.env):**
+- Change `LMSTUDIO_URL` if LM Studio runs on different port
+- Add `OPENAI_API_KEY` for OpenAI instead of LM Studio
+
+**For Docker Deployment (docker-compose.yml):**
+- Modify `LMSTUDIO_URL` in backend service environment
+- Update model name in `LOCAL_MODEL`
+- Adjust port mappings if needed
 
 ## Architecture Overview
 

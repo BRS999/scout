@@ -69,11 +69,24 @@ services:
     restart: unless-stopped
     ports:
       - "8777:7777"
-    env_file:
-      - ../.env
     environment:
+      # LM Studio connection (from host)
       - LMSTUDIO_URL=http://host.docker.internal:1234/v1
+      - LMSTUDIO_API_KEY=lm-studio
+      # Local model configuration
+      - LOCAL_MODEL=openai/gpt-oss-20b
+      # Database and external services (Docker service names)
+      - CHROMADB_URL=http://chromadb:8000
+      - SEARXNG_BASE_URL=http://searxng:8080
+      - SQLITE_PATH=/data/memory.db
+      # Application settings
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - OPENAI_API_KEY=lm-studio
+      - PORT=7777
+      # Backend specific settings
       - SEARNX_URL=http://searxng:8080
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:7777
     depends_on:
       - searxng
       - chromadb
