@@ -23,6 +23,10 @@ COPY --from=builder /app/out/json/ .
 COPY --from=builder /app/out/package-lock.json ./package-lock.json
 RUN npm install --legacy-peer-deps
 
+# Build-time config for Next public env (baked into client bundle)
+ARG NEXT_PUBLIC_BACKEND_URL
+ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
+
 # Build the project and dependencies
 COPY --from=builder /app/out/full/ .
 # Ensure tsconfig.base.json is available for TypeScript builds

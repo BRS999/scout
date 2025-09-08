@@ -1,4 +1,19 @@
-import 'dotenv/config'
+// Load environment variables from the monorepo root .env in both dev and docker
+import fs from 'node:fs'
+import path from 'node:path'
+import dotenv from 'dotenv'
+
+// Try common locations: container/root cwd and dev monorepo root
+const envCandidates = [
+  path.resolve(process.cwd(), '../../.env'), // e.g., from apps/backend -> repo/.env during dev
+]
+
+for (const p of envCandidates) {
+  if (fs.existsSync(p)) {
+    dotenv.config({ path: p })
+    break
+  }
+}
 import cors from '@fastify/cors'
 import { makeAgent } from '@scout/agent'
 import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify'

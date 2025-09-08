@@ -72,13 +72,8 @@ services:
     env_file:
       - ../.env
     environment:
-      - NODE_ENV=production
-      - PORT=7777
-      - HOST=0.0.0.0
+      - LMSTUDIO_URL=http://host.docker.internal:1234/v1
       - SEARNX_URL=http://searxng:8080
-      - SEARXNG_BASE_URL=http://searxng:8080
-      - CHROMADB_URL=http://chromadb:8000
-      - SQLITE_PATH=/data/memory.db
     depends_on:
       - searxng
       - chromadb
@@ -98,16 +93,13 @@ services:
     build:
       context: ..
       dockerfile: ./apps/frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_BACKEND_URL: "http://localhost:8777"
     restart: unless-stopped
     ports:
       - "3001:3001"
-    env_file:
-      - ../.env
     environment:
-      - NODE_ENV=production
-      - PORT=3001
       - HOSTNAME=0.0.0.0
-      - NEXT_PUBLIC_BACKEND_URL=http://backend:7777
     depends_on:
       - backend
     networks:
