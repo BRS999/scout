@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "chromadb": "^3.0.14",
-    "uuid": "^9.0.1"
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
