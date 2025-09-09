@@ -16,6 +16,7 @@
   "dependencies": {
     "@fastify/cors": "^8.5.0",
     "@scout/agent": "^0.1.0",
+    "chromadb": "^1.8.1",
     "fastify": "^4.24.0",
     "openai": "^4.28.0"
   },

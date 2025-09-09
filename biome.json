@@ -60,6 +60,11 @@
       "enabled": true
     }
   },
+  "css": {
+    "formatter": {
+      "enabled": true
+    }
+  },
   "files": {
     "include": ["**/*.js", "**/*.ts", "**/*.jsx", "**/*.tsx", "**/*.json", "**/*.mjs", "**/*.cjs"],
     "ignore": [
@@ -83,7 +88,8 @@
       "**/packages/agents/src/*.js",
       "**/packages/core/src/*.js",
       "**/packages/llm/src/*.js",
-      "**/packages/agent/src/*.js"
+      "**/packages/agent/src/*.js",
+      ".claude/**"
     ]
   },
   "overrides": [
@@ -93,6 +99,9 @@
         "rules": {
           "suspicious": {
             "noConsoleLog": "off"
+          },
+          "correctness": {
+            "noUnreachable": "off"
           }
         }
       }

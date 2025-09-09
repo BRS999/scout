@@ -31,16 +31,25 @@ A powerful, privacy focused AI research assistant that runs entirely on your loc
 - **Fast development**: Hot reload, instant linting with Biome
 - **Docker ready**: One-command deployment with all dependencies
 
+### Browser Automation 🕷️
+- **Steel Browser Integration**: REST API-powered browser automation with CDP support
+- **Programmatic Web Interaction**: Navigate, click, fill forms, and extract data via API
+- **JavaScript Execution**: Run custom JavaScript in page context
+- **Screenshot Capture**: Visual webpage analysis and documentation
+- **Form Automation**: Intelligent form filling with CSS selectors
+
 ## Features
 
 - **TypeScript First**: Full type safety with modern TypeScript
 - **Monorepo Architecture**: Organized packages for better maintainability
 - **Vector Memory**: ChromaDB-powered semantic storage and retrieval
 - **Web Research Agent**: Intelligent agent with web search and content analysis
-- **Tool Integration**: Built-in tools for web scraping, search, and research
+- **Steel Browser Automation**: REST API-powered browser automation with CDP
+- **Service Status Monitoring**: Real-time status dashboard for all services
+- **Tool Integration**: Built-in tools for web scraping, search, research, and automation
 - **Real-time Chat**: WebSocket-based chat interface
 - **Fast Linting**: Biome for lightning-fast code quality checks
-- **Docker Ready**: Complete containerized deployment with SearX and Redis
+- **Docker Ready**: Complete containerized deployment with SearX, Redis, and Steel Browser
 
 ## Project Structure
 
@@ -83,6 +92,7 @@ scout/
 - **Frontend**: Next.js + React + Tailwind CSS
 - **Web Search**: SearX
 - **Web Scraping**: Readability.js
+- **Browser Automation**: Steel Browser + Chrome DevTools Protocol
 - **LLM Integration**: LM Studio (local) or OpenAI API 
 
 ## Quick Start
@@ -95,6 +105,26 @@ Get started with Scout in minutes and maintain complete privacy with your local 
 - **npm** (comes with Node.js)
 - **Docker & Docker Compose**
 - **LM Studio** (recommended for local LLM) OR **OpenAI API Key**
+
+### 🚀 Enhanced Setup with Steel Browser Automation
+
+For the full experience with programmatic browser automation, use our enhanced setup:
+
+```bash
+# Quick setup with Steel Browser (recommended)
+./scripts/setup-steel.sh
+
+# This will:
+# - Start all services (SearX, ChromaDB, Steel Browser, Scout)
+# - Configure everything automatically
+```
+
+**Services will be available at:**
+- **Frontend**: http://localhost:3001
+- **Backend API**: http://localhost:8777
+- **Steel Browser API**: http://localhost:3003
+- **Steel Browser CDP**: http://localhost:9224
+- **SearX Search**: http://localhost:8080
 
 ### Installation
 
@@ -206,6 +236,34 @@ Once running, try asking Scout:
 - "Research the latest developments in renewable energy"
 - "Analyze the pros and cons of different JavaScript frameworks"
 - "Help me understand quantum computing basics"
+
+### 🕷️ Steel Browser Automation Examples
+
+With Steel Browser integration, Scout can now perform programmatic browser automation:
+
+**Web Navigation & Data Extraction:**
+- "Navigate to GitHub and take a screenshot"
+- "Extract the title from wikipedia.org using selector h1"
+- "Get the HTML content from example.com"
+
+**Form Automation:**
+- "Fill out a form with selector 'input[name=\"email\"]' and value 'test@example.com'"
+- "Type 'search query' into selector 'input[type=\"search\"]' and click selector 'button[type=\"submit\"]'"
+
+**JavaScript Execution:**
+- "Execute JavaScript 'document.title' on cnn.com"
+- "Run script 'window.scrollTo(0, document.body.scrollHeight)' to scroll to bottom"
+
+### Service Status Monitoring 🟢
+
+Click the "Status" button in the header to view real-time status of all services:
+
+- **Steel Browser** - Browser automation engine
+- **SearX Search** - Privacy-focused search engine
+- **ChromaDB** - Vector database for memory
+- **Redis** - Caching and session storage
+
+The dropdown shows online/offline status with automatic refresh every 30 seconds.
 
 ## Packages
 

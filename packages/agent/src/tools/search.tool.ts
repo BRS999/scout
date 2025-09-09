@@ -25,8 +25,11 @@ export class SearchRunTool extends StructuredTool {
   })
 
   async _call(args: z.infer<this['schema']>) {
+    const startTime = Date.now()
     const query = args.query ?? args.q
     const limit = args.limit ?? args.k ?? 8
+
+    console.info(`🔧 [SearchRunTool] Starting search: "${query}" (limit: ${limit})`)
 
     const searxBase =
       process.env.SEARNX_URL ||
@@ -38,6 +41,8 @@ export class SearchRunTool extends StructuredTool {
       if (!query) throw new Error("Missing 'query' (or 'q') parameter")
 
       const url = this.buildSearchUrl(searxBase, query)
+      console.info(`🔍 [SearchRunTool] Fetching from: ${url.toString()}`)
+
       const response = await fetch(url.toString())
       this.validateResponse(response)
 
@@ -53,12 +58,19 @@ export class SearchRunTool extends StructuredTool {
 
       const sliced = results.slice(0, typeof limit === 'number' ? limit : 8)
 
+      const endTime = Date.now()
+      console.info(
+        `✅ [SearchRunTool] Completed in ${endTime - startTime}ms - ${sliced.length} results found`
+      )
+
       return JSON.stringify(sliced)
     } catch (error) {
-      console.error('[SearchRunTool] Error:', error)
+      const endTime = Date.now()
+      console.error(`❌ [SearchRunTool] Failed after ${endTime - startTime}ms:`, error)
       return JSON.stringify({
         error: `Search failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         results: [],
+        executionTime: endTime - startTime,
       })
     }
   }
