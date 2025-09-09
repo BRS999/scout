@@ -1,5 +1,5 @@
 import Fastify from 'fastify'
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, FastifyReply } from 'fastify'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock the agent to avoid external dependencies
@@ -14,10 +14,14 @@ vi.mock('@scout/agent', () => ({
 
 // Import after mocking
 import { makeAgent } from '@scout/agent'
+import type { AgentInvokeResult } from '@scout/agent'
 
 describe('Backend API', () => {
   let app: FastifyInstance
-  let mockAgent: any
+  type AgentLike = {
+    invoke: (input: { input: string }) => Promise<AgentInvokeResult>
+  }
+  let mockAgent: AgentLike
 
   beforeEach(async () => {
     // Create a fresh Fastify instance for each test
@@ -28,7 +32,10 @@ describe('Backend API', () => {
       invoke: vi.fn().mockResolvedValue({
         output: 'Test response from agent',
         intermediateSteps: [],
-      }),
+        toolUsage: [],
+        executionTime: 0,
+        toolsUsed: 0,
+      } satisfies AgentInvokeResult),
     }
 
     vi.mocked(makeAgent).mockResolvedValue(mockAgent)
@@ -51,7 +58,7 @@ describe('Backend API', () => {
       }
     })
 
-    let langchainAgent: any = null
+    let langchainAgent: AgentLike | null = null
 
     // Regular agent endpoint
     app.post('/api/agent', async (request, reply) => {
@@ -60,7 +67,7 @@ describe('Backend API', () => {
       }
 
       if (!langchainAgent) {
-        langchainAgent = await makeAgent()
+        langchainAgent = (await makeAgent()) as unknown as AgentLike
       }
 
       const lastUserMessage = messages?.filter((m) => m.role === 'user').pop()
@@ -70,7 +77,7 @@ describe('Backend API', () => {
         return reply.code(400).send({ error: 'No user message found' })
       }
 
-      const result = await langchainAgent.invoke({ input })
+      const result = (await langchainAgent.invoke({ input })) as { output?: string }
 
       return reply.send({
         id: 'test-id',
@@ -81,13 +88,28 @@ describe('Backend API', () => {
     })
 
     // Streaming agent endpoint
+    // Helpers to reduce complexity in the handler
+    const writeSSE = (reply: FastifyReply, data: unknown) => {
+      reply.raw.write(`data: ${JSON.stringify(data)}\\n\\n`)
+    }
+    const sendStartEvent = (reply: FastifyReply, id: string, timestamp: string) => {
+      writeSSE(reply, { type: 'start', id, role: 'assistant', timestamp })
+    }
+    const streamWords = (reply: FastifyReply, id: string, content: string) => {
+      const words = content.split(' ')
+      for (let i = 0; i < words.length; i++) {
+        const chunk = i === 0 ? words[i] : ` ${words[i]}`
+        writeSSE(reply, { type: 'chunk', id, content: chunk })
+      }
+    }
+
     app.post('/api/agent/stream', async (request, reply) => {
       const { messages } = (request.body as { messages?: { role: string; content: string }[] }) ?? {
         messages: [],
       }
 
       if (!langchainAgent) {
-        langchainAgent = await makeAgent()
+        langchainAgent = (await makeAgent()) as unknown as AgentLike
       }
 
       const lastUserMessage = messages?.filter((m) => m.role === 'user').pop()
@@ -110,31 +132,12 @@ describe('Backend API', () => {
       const timestamp = new Date().toISOString()
 
       // Send start event
-      reply.raw.write(
-        `data: ${JSON.stringify({
-          type: 'start',
-          id: messageId,
-          role: 'assistant',
-          timestamp,
-        })}\\n\\n`
-      )
+      sendStartEvent(reply, messageId, timestamp)
 
       // Get response from agent
-      const result = await langchainAgent.invoke({ input })
+      const result = (await langchainAgent.invoke({ input })) as { output?: string }
       const content = result.output ?? 'No response generated'
-      const words = content.split(' ')
-
-      // Stream words
-      for (let i = 0; i < words.length; i++) {
-        const chunk = i === 0 ? words[i] : ` ${words[i]}`
-        reply.raw.write(
-          `data: ${JSON.stringify({
-            type: 'chunk',
-            id: messageId,
-            content: chunk,
-          })}\\n\\n`
-        )
-      }
+      streamWords(reply, messageId, content)
 
       // Send done event
       reply.raw.write(
@@ -242,7 +245,7 @@ describe('Backend API', () => {
   describe('Streaming agent endpoint', () => {
     it('streams response correctly', async () => {
       // Mock agent with specific response for streaming
-      mockAgent.invoke.mockResolvedValue({
+      ;(mockAgent.invoke as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
         output: 'Hello world test',
         intermediateSteps: [],
       })

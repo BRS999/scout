@@ -11,6 +11,9 @@ export function makeModel() {
     configuration: {
       baseURL: process.env.LMSTUDIO_URL ?? 'http://127.0.0.1:1234/v1',
     },
+    modelKwargs: {
+      reasoning_effort: 'low',
+    },
   })
 }
 
@@ -22,6 +25,7 @@ export function makeModelWithConfig(config: {
   modelName?: string
   baseURL?: string
   apiKey?: string
+  reasoningEffort?: 'low' | 'medium' | 'high'
 }) {
   return new ChatOpenAI({
     temperature: config.temperature ?? 0.2,
@@ -29,6 +33,9 @@ export function makeModelWithConfig(config: {
     openAIApiKey: config.apiKey ?? process.env.LMSTUDIO_API_KEY ?? 'lm-studio',
     configuration: {
       baseURL: config.baseURL ?? process.env.LMSTUDIO_URL ?? 'http://127.0.0.1:1234/v1',
+    },
+    modelKwargs: {
+      reasoning_effort: config.reasoningEffort ?? 'low',
     },
   })
 }

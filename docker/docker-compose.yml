@@ -61,6 +61,22 @@ services:
     networks:
       - scout-net
 
+  steel-browser:
+    container_name: scout-steel-browser
+    image: ghcr.io/steel-dev/steel-browser-api:latest
+    restart: unless-stopped
+    ports:
+      - "3003:3000"
+      - "9224:9223"
+    environment:
+      - PORT=3000
+      - DOMAIN=0.0.0.0:3000
+      - CDP_DOMAIN=0.0.0.0:9223
+    volumes:
+      - steel-cache:/app/.cache
+    networks:
+      - scout-net
+
   backend:
     container_name: scout-backend
     build:
@@ -79,6 +95,10 @@ services:
       - CHROMADB_URL=http://chromadb:8000
       - SEARXNG_BASE_URL=http://searxng:8080
       - SQLITE_PATH=/data/memory.db
+      # Steel Browser integration
+      - STEEL_BROWSER_URL=http://steel-browser:3000
+      - STEEL_API_URL=http://steel-browser:3000
+      - STEEL_CDP_URL=http://steel-browser:9223
       # Application settings
       - NODE_ENV=production
       - HOST=0.0.0.0
@@ -90,6 +110,7 @@ services:
     depends_on:
       - searxng
       - chromadb
+      - steel-browser
     networks:
       - scout-net
     volumes:
@@ -128,6 +149,7 @@ volumes:
   redis-data:
   backend-data:
   chroma-data:
+  steel-cache:
 
 networks:
   scout-net:

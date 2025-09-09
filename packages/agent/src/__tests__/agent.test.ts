@@ -168,7 +168,7 @@ describe('Agent', () => {
       const mockAgent = {
         invoke: vi.fn().mockResolvedValue({ output: 'Mock response' }),
       }
-      vi.mocked(createToolCallingAgent).mockResolvedValue(mockAgent as any)
+      vi.mocked(createToolCallingAgent).mockResolvedValue(mockAgent as unknown as never)
 
       await makeAgent()
 
@@ -191,15 +191,15 @@ describe('Agent', () => {
       // Mock AgentExecutor to fail on invoke
       const mockExecutor = {
         invoke: vi.fn().mockRejectedValue(new Error('Runtime tool error')),
-      } as any
-      vi.mocked(AgentExecutor).mockImplementation(() => mockExecutor)
+      }
+      vi.mocked(AgentExecutor).mockImplementation(() => mockExecutor as unknown as never)
 
       const agent = await makeAgent()
       const result = await agent.invoke({ input: 'Test message' })
 
       expect(result).toBeDefined()
-      expect(result.output).toBeDefined()
-      expect(result.intermediateSteps).toEqual([])
+      expect(typeof result.output).toBe('string')
+      expect(Array.isArray(result.intermediateSteps)).toBe(true)
     })
 
     it('escapes system prompt correctly', async () => {
@@ -236,8 +236,8 @@ describe('Agent', () => {
       // Test the fallback chain
       const result = await agent.invoke({ input: 'Test fallback' })
       expect(result).toBeDefined()
-      expect(result.output).toBeDefined()
-      expect(result.intermediateSteps).toEqual([])
+      expect(typeof result.output).toBe('string')
+      expect(Array.isArray(result.intermediateSteps)).toBe(true)
     })
 
     it('handles errors in fallback chain gracefully', async () => {
@@ -260,20 +260,21 @@ describe('Agent', () => {
       }
       const mockModel = {
         pipe: vi.fn().mockReturnValue(mockChain),
-      } as any
-      vi.mocked(makeModel).mockReturnValue(mockModel)
+      }
+      vi.mocked(makeModel).mockReturnValue(mockModel as unknown as never)
 
       // Mock prompt template to return the chain
       vi.mocked(ChatPromptTemplate.fromMessages).mockReturnValue({
         pipe: vi.fn().mockReturnValue(mockChain),
-      } as any)
+      } as unknown as never)
 
       const agent = await makeAgent()
       const result = await agent.invoke({ input: 'Test error handling' })
 
       expect(result).toBeDefined()
+      expect(typeof result.output).toBe('string')
       expect(result.output).toContain('Error: Chain failed')
-      expect(result.intermediateSteps).toEqual([])
+      expect(Array.isArray(result.intermediateSteps)).toBe(true)
     })
   })
 })

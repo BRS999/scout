@@ -14,14 +14,14 @@ export class ResearchWebTool extends StructuredTool {
     query: z.string().describe('Primary research question'),
     max_pages: z.number().int().min(1).max(6).default(3).optional(),
     variants: z.array(z.string()).optional().describe('Additional query variants to search'),
+    block_domains: z
+      .array(z.string())
+      .optional()
+      .describe('Optional domain blacklist (substrings)'),
     allow_domains: z
       .array(z.string())
       .optional()
-      .describe('Optional domain allowlist (substrings)'),
-    disallow_domains: z
-      .array(z.string())
-      .optional()
-      .describe('Optional domain blocklist (substrings)'),
+      .describe('Optional domain allowlist (substrings) - overrides blacklist'),
   })
 
   private buildSearchQueries(query: string, variants?: string[]): string[] {
@@ -69,8 +69,8 @@ export class ResearchWebTool extends StructuredTool {
 
   private filterResultsByDomain(
     results: ResultItem[],
-    allow_domains?: string[],
-    disallow_domains?: string[]
+    block_domains?: string[],
+    allow_domains?: string[]
   ): ResultItem[] {
     const picked: ResultItem[] = []
     const hostSeen = new Set<string>()
@@ -78,7 +78,7 @@ export class ResearchWebTool extends StructuredTool {
     for (const r of results) {
       try {
         const host = new URL(r.url).hostname
-        if (this.isDomainAllowed(host, allow_domains, disallow_domains) && !hostSeen.has(host)) {
+        if (this.isDomainAllowed(host, block_domains, allow_domains) && !hostSeen.has(host)) {
           hostSeen.add(host)
           picked.push(r)
         }
@@ -92,17 +92,21 @@ export class ResearchWebTool extends StructuredTool {
 
   private isDomainAllowed(
     host: string,
-    allow_domains?: string[],
-    disallow_domains?: string[]
+    block_domains?: string[],
+    allow_domains?: string[]
   ): boolean {
+    // Allowlist takes precedence - if specified, only allow those domains
     if (allow_domains?.length) {
-      const ok = allow_domains.some((d) => host.includes(d))
-      if (!ok) return false
+      const allowed = allow_domains.some((d) => host.includes(d))
+      if (!allowed) return false
     }
-    if (disallow_domains?.length) {
-      const bad = disallow_domains.some((d) => host.includes(d))
-      if (bad) return false
+
+    // Check blacklist - block specified domains
+    if (block_domains?.length) {
+      const blocked = block_domains.some((d) => host.includes(d))
+      if (blocked) return false
     }
+
     return true
   }
 
@@ -161,9 +165,16 @@ export class ResearchWebTool extends StructuredTool {
     query,
     max_pages,
     variants,
+    block_domains,
     allow_domains,
-    disallow_domains,
   }: z.infer<this['schema']>) {
+    const startTime = Date.now()
+    const effectiveMaxPages = max_pages ?? 3
+
+    console.info(
+      `🔧 [ResearchWebTool] Starting deep research: "${query}" (max_pages: ${effectiveMaxPages})`
+    )
+
     const searxBase =
       process.env.SEARNX_URL ||
       process.env.SEARXNG_URL ||
@@ -171,6 +182,8 @@ export class ResearchWebTool extends StructuredTool {
       'http://localhost:8080'
 
     const queries = this.buildSearchQueries(query, variants)
+    console.info(`🔍 [ResearchWebTool] Generated ${queries.length} search queries:`, queries)
+
     const seen = new Set<string>()
     const results: ResultItem[] = []
     const errors: string[] = []
@@ -188,7 +201,7 @@ export class ResearchWebTool extends StructuredTool {
 
       // Sort by score, then dedupe by hostname
       results.sort((a, b) => (b.score || 0) - (a.score || 0))
-      const picked = this.filterResultsByDomain(results, allow_domains, disallow_domains)
+      const picked = this.filterResultsByDomain(results, block_domains, allow_domains)
 
       // Limit results to max_pages
       const limited = picked.slice(0, max_pages ?? 3)
@@ -205,12 +218,23 @@ export class ResearchWebTool extends StructuredTool {
 
       // Format results
       const payload = this.formatResults(query, parsed, picked, errors)
-      return JSON.stringify(payload)
+      const endTime = Date.now()
+
+      console.info(
+        `✅ [ResearchWebTool] Completed in ${endTime - startTime}ms - ${parsed.length} pages fetched, ${picked.length} sources found`
+      )
+
+      return JSON.stringify({
+        ...payload,
+        executionTime: endTime - startTime,
+      })
     } catch (error) {
-      console.error('[ResearchWebTool] Error:', error)
+      const endTime = Date.now()
+      console.error(`❌ [ResearchWebTool] Failed after ${endTime - startTime}ms:`, error)
       return JSON.stringify({
         error: error instanceof Error ? error.message : 'Deep research failed',
         results: [],
+        executionTime: endTime - startTime,
       })
     }
   }

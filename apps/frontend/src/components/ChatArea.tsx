@@ -1,11 +1,12 @@
 'use client'
 
+import { ServiceStatus } from '@/components/ServiceStatus'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Textarea } from '@/components/ui/textarea'
-import { Bot, Code, Search, Send, Sparkles, User } from 'lucide-react'
+import { Bot, Clock, Code, Search, Send, Sparkles, User, Wrench, Zap } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import rehypeHighlight from 'rehype-highlight'
@@ -16,6 +17,31 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
+  toolUsage?: Array<{
+    tool: string
+    input: unknown
+    output: unknown
+    timestamp: Date
+    duration?: number
+  }>
+  executionTime?: number
+  toolsUsed?: number
+}
+
+interface StreamingData {
+  type: 'start' | 'chunk' | 'error' | 'done'
+  content?: string
+  message?: string
+  timestamp?: string
+  toolUsage?: Array<{
+    tool: string
+    input: unknown
+    output: unknown
+    timestamp: Date
+    duration?: number
+  }>
+  executionTime?: number
+  toolsUsed?: number
 }
 
 const SAMPLE_PROMPTS = [
@@ -43,40 +69,210 @@ export function ChatArea() {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
-  const [backendStatus, setBackendStatus] = useState<BackendStatus>('connecting')
+  const [_backendStatus, setBackendStatus] = useState<BackendStatus>('connecting')
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const createUserMessage = (content: string): Message => ({
+    id: Date.now().toString(),
+    role: 'user',
+    content,
+    timestamp: new Date(),
+  })
+
+  const createAssistantMessage = (
+    id: string,
+    content: string,
+    toolUsage?: Message['toolUsage'],
+    executionTime?: number,
+    toolsUsed?: number
+  ): Message => ({
+    id,
+    role: 'assistant',
+    content,
+    timestamp: new Date(),
+    toolUsage,
+    executionTime,
+    toolsUsed,
+  })
+
+  const updateMessageContent = (messageId: string, newContent: string) => {
+    setMessages((prev) =>
+      prev.map((msg) => (msg.id === messageId ? { ...msg, content: newContent } : msg))
+    )
+  }
+
+  const updateMessageMetadata = (messageId: string, metadata: Partial<Message>) => {
+    setMessages((prev) => prev.map((msg) => (msg.id === messageId ? { ...msg, ...metadata } : msg)))
+  }
+
+  const applyChunkFirst = (
+    id: string,
+    data: StreamingData
+  ): { accumulatedContent: string; isFirstChunk: boolean } => {
+    setIsLoading(false)
+    const assistantMessage = createAssistantMessage(
+      id,
+      data.content || '',
+      data.toolUsage,
+      data.executionTime,
+      data.toolsUsed
+    )
+    setMessages((prev) => [...prev, assistantMessage])
+    return { accumulatedContent: data.content || '', isFirstChunk: false }
+  }
+
+  const applyChunk = (
+    id: string,
+    accumulated: string,
+    delta?: string
+  ): { accumulatedContent: string; isFirstChunk: boolean } => {
+    const newContent = accumulated + (delta || '')
+    updateMessageContent(id, newContent)
+    return { accumulatedContent: newContent, isFirstChunk: false }
+  }
+
+  type StreamingChunkResult = {
+    accumulatedContent: string
+    isFirstChunk: boolean
+    shouldBreak?: boolean
+  }
+
+  const handleStreamingChunk = (
+    data: StreamingData,
+    assistantMessageId: string,
+    accumulatedContent: string,
+    isFirstChunk: boolean
+  ): StreamingChunkResult => {
+    switch (data.type) {
+      case 'chunk':
+        return isFirstChunk
+          ? applyChunkFirst(assistantMessageId, data)
+          : applyChunk(assistantMessageId, accumulatedContent, data.content)
+      case 'error':
+        handleStreamingError(assistantMessageId, data.message || 'Unknown error')
+        return { accumulatedContent, isFirstChunk, shouldBreak: true }
+      case 'done':
+        updateMessageMetadata(assistantMessageId, {
+          timestamp: data.timestamp ? new Date(data.timestamp) : new Date(),
+          toolUsage: data.toolUsage,
+          executionTime: data.executionTime,
+          toolsUsed: data.toolsUsed,
+        })
+        setIsStreaming(false)
+        return { accumulatedContent, isFirstChunk, shouldBreak: true }
+      default:
+        return { accumulatedContent, isFirstChunk }
+    }
+  }
+
+  const handleStreamingError = (assistantMessageId: string, errorMessage: string) => {
+    setIsLoading(false)
+    const hasAssistantMessage = messages.some((msg) => msg.id === assistantMessageId)
+
+    if (!hasAssistantMessage) {
+      const errorMsg = createAssistantMessage(
+        assistantMessageId,
+        `Sorry, I encountered an error: ${errorMessage}`
+      )
+      setMessages((prev) => [...prev, errorMsg])
+    } else {
+      updateMessageContent(assistantMessageId, `Sorry, I encountered an error: ${errorMessage}`)
+    }
+    setIsStreaming(false)
+  }
+
+  const createErrorMessage = (assistantMessageId: string): Message => ({
+    id: assistantMessageId,
+    role: 'assistant',
+    content:
+      'Sorry, I encountered an error while processing your request. The backend service might be unavailable.',
+    timestamp: new Date(),
+  })
+
+  const processLine = (
+    line: string,
+    assistantMessageId: string,
+    accumulatedContent: string,
+    isFirstChunk: boolean
+  ) => {
+    if (!line.startsWith('data: ')) return { accumulatedContent, isFirstChunk, shouldBreak: false }
+    try {
+      const data = JSON.parse(line.slice(6))
+      const result = handleStreamingChunk(
+        data,
+        assistantMessageId,
+        accumulatedContent,
+        isFirstChunk
+      )
+      return { ...result, shouldBreak: Boolean(result.shouldBreak) }
+    } catch (_parseError) {
+      console.warn('Failed to parse SSE data:', line)
+      return { accumulatedContent, isFirstChunk, shouldBreak: false }
+    }
+  }
+
+  const processStreamingResponse = async (
+    reader: ReadableStreamDefaultReader<Uint8Array>,
+    assistantMessageId: string
+  ) => {
+    const decoder = new TextDecoder()
+    let accumulatedContent = ''
+    let isFirstChunk = true
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      const chunk = decoder.decode(value)
+      const lines = chunk.split('\n')
+
+      for (const line of lines) {
+        const res = processLine(line, assistantMessageId, accumulatedContent, isFirstChunk)
+        accumulatedContent = res.accumulatedContent
+        isFirstChunk = res.isFirstChunk
+        if (res.shouldBreak) return
+      }
+    }
+  }
+
+  const handleMessageError = (assistantMessageId: string) => {
+    console.error('Error sending message')
+    const hasAssistantMessage = messages.some((msg) => msg.id === assistantMessageId)
+
+    if (!hasAssistantMessage) {
+      const errorMessage = createErrorMessage(assistantMessageId)
+      setMessages((prev) => [...prev, errorMessage])
+    } else {
+      updateMessageContent(
+        assistantMessageId,
+        'Sorry, I encountered an error while processing your request. The backend service might be unavailable.'
+      )
+    }
+    setTimeout(() => checkBackendHealth(), 1000)
+  }
 
   const handleSendMessage = async (messageContent?: string) => {
     const content = messageContent || input.trim()
     if (!content || isLoading || isStreaming) return
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: content,
-      timestamp: new Date(),
-    }
-
+    const userMessage = createUserMessage(content)
     setMessages((prev) => [...prev, userMessage])
     setInput('')
     setIsLoading(true)
     setIsStreaming(true)
 
-    // Don't create assistant message yet - let loading bubbles show
     const assistantMessageId = (Date.now() + 1).toString()
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:7777'
       const response = await fetch(`${backendUrl}/api/agent/stream`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [
             ...messages.map((m) => ({ role: m.role, content: m.content })),
-            { role: 'user', content: content },
+            { role: 'user', content },
           ],
         }),
       })
@@ -86,125 +282,14 @@ export function ChatArea() {
       }
 
       const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-
       if (!reader) {
         throw new Error('Response body is not readable')
       }
 
-      let accumulatedContent = ''
-      let isFirstChunk = true
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        const chunk = decoder.decode(value)
-        const lines = chunk.split('\n')
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6))
-
-              if (data.type === 'start') {
-                // Streaming started, but keep loading until first chunk
-                // setIsLoading(false) - moved to first chunk
-              } else if (data.type === 'chunk') {
-                if (isFirstChunk) {
-                  // First chunk received, disable loading indicator and create message
-                  setIsLoading(false)
-                  const assistantMessage: Message = {
-                    id: assistantMessageId,
-                    role: 'assistant',
-                    content: data.content,
-                    timestamp: new Date(),
-                  }
-                  accumulatedContent = data.content
-                  setMessages((prev) => [...prev, assistantMessage])
-                  isFirstChunk = false
-                } else {
-                  // Subsequent chunks - update existing message
-                  accumulatedContent += data.content
-                  setMessages((prev) =>
-                    prev.map((msg) =>
-                      msg.id === assistantMessageId ? { ...msg, content: accumulatedContent } : msg
-                    )
-                  )
-                }
-              } else if (data.type === 'error') {
-                setIsLoading(false)
-                if (!messages.some((msg) => msg.id === assistantMessageId)) {
-                  // Create error message if assistant message doesn't exist yet
-                  const errorMessage: Message = {
-                    id: assistantMessageId,
-                    role: 'assistant',
-                    content: `Sorry, I encountered an error: ${data.message}`,
-                    timestamp: new Date(),
-                  }
-                  setMessages((prev) => [...prev, errorMessage])
-                } else {
-                  // Update existing message with error
-                  setMessages((prev) =>
-                    prev.map((msg) =>
-                      msg.id === assistantMessageId
-                        ? {
-                            ...msg,
-                            content: `Sorry, I encountered an error: ${data.message}`,
-                          }
-                        : msg
-                    )
-                  )
-                }
-                setIsStreaming(false)
-                break
-              } else if (data.type === 'done') {
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessageId
-                      ? { ...msg, timestamp: new Date(data.timestamp) }
-                      : msg
-                  )
-                )
-                setIsStreaming(false)
-                break
-              }
-            } catch (_parseError) {
-              console.warn('Failed to parse SSE data:', line)
-            }
-          }
-        }
-      }
-
-      // Quick health check after successful message
+      await processStreamingResponse(reader, assistantMessageId)
       setTimeout(() => checkBackendHealth(), 1000)
-    } catch (error) {
-      console.error('Error sending message:', error)
-      // Check if assistant message exists, if not create one with error
-      setMessages((prev) => {
-        const hasAssistantMessage = prev.some((msg) => msg.id === assistantMessageId)
-        if (!hasAssistantMessage) {
-          const errorMessage: Message = {
-            id: assistantMessageId,
-            role: 'assistant',
-            content:
-              'Sorry, I encountered an error while processing your request. The backend service might be unavailable.',
-            timestamp: new Date(),
-          }
-          return [...prev, errorMessage]
-        }
-        return prev.map((msg) =>
-          msg.id === assistantMessageId
-            ? {
-                ...msg,
-                content:
-                  'Sorry, I encountered an error while processing your request. The backend service might be unavailable.',
-              }
-            : msg
-        )
-      })
-      // Check health immediately on error
-      setTimeout(() => checkBackendHealth(), 1000)
+    } catch (_error) {
+      handleMessageError(assistantMessageId)
     } finally {
       setIsLoading(false)
       setIsStreaming(false)
@@ -306,33 +391,7 @@ export function ChatArea() {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <div className="text-xs text-muted-foreground hidden sm:block">
-            {backendStatus === 'online' && 'Online'}
-            {backendStatus === 'connecting' && 'Connecting...'}
-            {backendStatus === 'offline' && 'Offline'}
-            {backendStatus === 'error' && 'Service Error'}
-          </div>
-          {(backendStatus === 'offline' || backendStatus === 'error') && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-2 text-xs hover:bg-muted"
-              onClick={checkBackendHealth}
-            >
-              Retry
-            </Button>
-          )}
-          <div
-            className={`w-2 h-2 rounded-full ${
-              backendStatus === 'online'
-                ? 'bg-green-500 animate-pulse'
-                : backendStatus === 'connecting'
-                  ? 'bg-yellow-500 animate-pulse'
-                  : backendStatus === 'offline'
-                    ? 'bg-red-500'
-                    : 'bg-orange-500 animate-pulse'
-            }`}
-          />
+          <ServiceStatus />
           <ThemeToggle />
         </div>
       </div>
@@ -342,7 +401,7 @@ export function ChatArea() {
         <div className="space-y-4">
           {messages.length === 0 && (
             <div className="flex-1 flex items-center justify-center p-8">
-              <Card className="w-full max-w-2xl shadow-lg border-0 bg-gradient-to-br from-card to-muted/10">
+              <Card className="w-full bg-gradient-to-b from-card to-muted/10 max-w-2xl shadow-lg border-0">
                 <CardContent className="p-8 text-center">
                   <div className="flex justify-center mb-6">
                     <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center">
@@ -427,6 +486,70 @@ export function ChatArea() {
                     <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
                   )}
                 </div>
+
+                {/* Tool Usage Information */}
+                {message.role === 'assistant' && (message.toolUsage || message.executionTime) && (
+                  <div className="px-4 pb-2">
+                    <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                      {message.executionTime && (
+                        <div className="flex items-center space-x-1">
+                          <Clock className="h-3 w-3" />
+                          <span>{message.executionTime}ms</span>
+                        </div>
+                      )}
+                      {message.toolsUsed !== undefined && (
+                        <div className="flex items-center space-x-1">
+                          <Wrench className="h-3 w-3" />
+                          <span>
+                            {message.toolsUsed} tool{message.toolsUsed !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      )}
+                      {message.toolUsage && message.toolUsage.length > 0 && (
+                        <div className="flex items-center space-x-1">
+                          <Zap className="h-3 w-3" />
+                          <span>Debug info</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Tool Usage Details */}
+                    {message.toolUsage && message.toolUsage.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        <details className="text-xs">
+                          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                            Tool usage details
+                          </summary>
+                          <div className="mt-2 space-y-2 pl-4 border-l-2 border-muted">
+                            {message.toolUsage.map((usage, index) => (
+                              <div
+                                key={`${usage.tool}-${usage.timestamp.getTime()}-${index}`}
+                                className="bg-muted/30 rounded p-2"
+                              >
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="font-medium text-foreground">{usage.tool}</span>
+                                  {usage.duration && (
+                                    <span className="text-muted-foreground">
+                                      {usage.duration}ms
+                                    </span>
+                                  )}
+                                </div>
+                                {usage.input != null && (
+                                  <div className="text-muted-foreground">
+                                    <strong>Input:</strong>{' '}
+                                    {JSON.stringify(usage.input).substring(0, 100)}
+                                    {JSON.stringify(usage.input).length > 100 && '...'}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div
                   className={`px-4 pb-2 text-xs opacity-60 ${
                     message.role === 'user' ? 'text-right' : 'text-left'

@@ -37,34 +37,48 @@ export class BrowserNavigateTool extends StructuredTool {
   })
 
   async _call({ url }: z.infer<this['schema']>) {
+    const startTime = Date.now()
+    console.info(`🔧 [BrowserNavigateTool] Starting navigation to ${url}`)
+
     try {
-      // Basic domain allowlist check
-      const allowedDomains = [
-        'wikipedia.org',
-        'github.com',
-        'stackoverflow.com',
-        'docs.npmjs.com',
-        'developer.mozilla.org',
-        // Add more as needed
+      // Basic domain blacklist check - block potentially harmful or inappropriate sites
+      const blockedDomains = [
+        'malware.com',
+        'phishing-site.com',
+        'scam-site.org',
+        'adult-content-site.com',
+        'gambling-site.net',
+        // Add more blocked domains as needed
       ]
 
       const domain = new URL(url).hostname
-      const isAllowed = allowedDomains.some((allowed) => domain.includes(allowed))
+      const isBlocked = blockedDomains.some((blocked) => domain.includes(blocked))
 
-      if (!isAllowed) {
+      if (isBlocked) {
+        console.info(`🚫 [BrowserNavigateTool] Domain ${domain} is blocked`)
         return JSON.stringify({
-          error: `Domain ${domain} is not in allowlist. Please use search.run first to find relevant sources.`,
+          error: `Domain ${domain} is blocked for security reasons.`,
           success: false,
+          executionTime: Date.now() - startTime,
         })
       }
 
+      console.info(`🌐 [BrowserNavigateTool] Domain ${domain} allowed, navigating...`)
       const result = await mcpInvoke('browser.navigate', { url })
-      return JSON.stringify(result)
+      const endTime = Date.now()
+
+      console.info(`✅ [BrowserNavigateTool] Completed in ${endTime - startTime}ms`)
+      return JSON.stringify({
+        ...result,
+        executionTime: endTime - startTime,
+      })
     } catch (error) {
-      console.error('[BrowserNavigateTool] Error:', error)
+      const endTime = Date.now()
+      console.error(`❌ [BrowserNavigateTool] Failed after ${endTime - startTime}ms:`, error)
       return JSON.stringify({
         error: error instanceof Error ? error.message : 'Navigation failed',
         success: false,
+        executionTime: endTime - startTime,
       })
     }
   }
@@ -80,14 +94,27 @@ export class BrowserGetHtmlTool extends StructuredTool {
   schema = z.object({})
 
   async _call() {
+    const startTime = Date.now()
+    console.info('🔧 [BrowserGetHtmlTool] Getting HTML from current page')
+
     try {
       const result = await mcpInvoke('browser.get_html', {})
-      return JSON.stringify(result)
+      const endTime = Date.now()
+
+      console.info(
+        `✅ [BrowserGetHtmlTool] Completed in ${endTime - startTime}ms - ${result.html?.length || 0} characters retrieved`
+      )
+      return JSON.stringify({
+        ...result,
+        executionTime: endTime - startTime,
+      })
     } catch (error) {
-      console.error('[BrowserGetHtmlTool] Error:', error)
+      const endTime = Date.now()
+      console.error(`❌ [BrowserGetHtmlTool] Failed after ${endTime - startTime}ms:`, error)
       return JSON.stringify({
         error: error instanceof Error ? error.message : 'Failed to get HTML',
         success: false,
+        executionTime: endTime - startTime,
       })
     }
   }
