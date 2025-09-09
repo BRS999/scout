@@ -9,7 +9,7 @@ describe('ChatArea', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     // Mock fetch globally with endpoint-sensitive responses
-    global.fetch = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    global.fetch = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input.toString()
       if (url.includes('/api/services/status')) {
         return Promise.resolve({
@@ -86,9 +86,7 @@ describe('ChatArea', () => {
 
     // Verify that service status fetch is triggered
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/services/status')
-      )
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/api/services/status'))
     })
   })
 

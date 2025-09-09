@@ -538,25 +538,30 @@ export class SteelAdvancedScrapeTool extends StructuredTool {
         // Try different possible structures
         const response = steelResponse as Record<string, unknown> | string
         if (typeof response === 'object' && response) {
-          const r = response as any
-          if (r.content?.html) {
+          const r = response as Record<string, unknown>
+          const rContent = r.content as Record<string, unknown> | undefined
+          if (rContent && typeof rContent === 'object' && 'html' in rContent) {
             // Standard structure: { content: { html: "..." }, metadata: {...}, links: [...] }
-            content = r.content.html
-            title = r.metadata?.title || 'Unknown Title'
-            links = r.links || []
-            responseUrl = r.metadata?.urlSource || url
-          } else if (r.html) {
+            content = String(rContent.html ?? '')
+            const meta = (r.metadata as Record<string, unknown> | undefined) ?? {}
+            title = String((meta.title as string | undefined) ?? 'Unknown Title')
+            links =
+              (r.links as Array<{ href?: string; text?: string; [key: string]: unknown }>) || []
+            responseUrl = String((meta.urlSource as string | undefined) ?? url)
+          } else if ('html' in r) {
             // Alternative structure: { html: "...", markdown: "...", links: [...] }
-            content = r.html
-            title = r.title || 'Unknown Title'
-            links = r.links || []
-            responseUrl = r.url || url
-          } else if (r.markdown) {
+            content = String(r.html ?? '')
+            title = String((r.title as string | undefined) ?? 'Unknown Title')
+            links =
+              (r.links as Array<{ href?: string; text?: string; [key: string]: unknown }>) || []
+            responseUrl = String((r.url as string | undefined) ?? url)
+          } else if ('markdown' in r) {
             // Markdown-only response
-            content = r.markdown
-            title = r.title || 'Unknown Title'
-            links = r.links || []
-            responseUrl = r.url || url
+            content = String((r.markdown as string | undefined) ?? '')
+            title = String((r.title as string | undefined) ?? 'Unknown Title')
+            links =
+              (r.links as Array<{ href?: string; text?: string; [key: string]: unknown }>) || []
+            responseUrl = String((r.url as string | undefined) ?? url)
           } else {
             // Unknown structure - try to extract what we can
             content = JSON.stringify(response).substring(0, 1000)
@@ -603,7 +608,7 @@ export class SteelAdvancedScrapeTool extends StructuredTool {
 
       // If it's an API unavailability error, suggest fallback
       if (errorMessage.includes('Steel API') || errorMessage.includes('fetch')) {
-        console.log(
+        console.info(
           '⚠️ [SteelAdvancedScrapeTool] Steel API unavailable, consider using browser tools instead'
         )
       }

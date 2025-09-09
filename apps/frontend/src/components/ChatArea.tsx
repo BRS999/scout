@@ -394,7 +394,7 @@ export function ChatArea() {
     return () => clearInterval(healthCheckInterval)
   }, [checkBackendHealth])
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom after render
   useEffect(() => {
     if (scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector(
@@ -404,7 +404,9 @@ export function ChatArea() {
         scrollContainer.scrollTop = scrollContainer.scrollHeight
       }
     }
-  }, [messages])
+    // Intentionally no dependencies; relies on DOM updates
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="flex flex-col h-full">
