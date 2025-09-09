@@ -17,7 +17,7 @@
     "type-check": "turbo type-check"
   },
   "dependencies": {
-    "@langchain/community": "0.2.31",
+    "@langchain/community": "0.3.55",
     "@langchain/core": "0.3.70",
     "@langchain/openai": "0.6.11",
     "@mozilla/readability": "0.5.0",
