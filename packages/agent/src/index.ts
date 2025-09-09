@@ -276,7 +276,7 @@ export async function makeAgent() {
       invoke: async (input: { input: string }): Promise<AgentInvokeResult> => {
         try {
           const result = await chain.invoke({ input: input.input })
-          const maybeObj = result as Record<string, unknown>
+          const maybeObj = result as unknown as Record<string, unknown>
           const contentVal = 'content' in maybeObj ? maybeObj.content : result
           return {
             output: String(contentVal),
