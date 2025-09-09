@@ -84,6 +84,29 @@ vi.mock('../tools/search.tool', () => ({
   })),
 }))
 
+vi.mock('../tools/steel.tool', () => ({
+  SteelAdvancedScrapeTool: vi.fn().mockImplementation(() => ({
+    name: 'steel.advanced_scrape',
+    description: 'Advanced scraping',
+    call: vi.fn().mockResolvedValue('Scrape OK'),
+  })),
+  SteelScreenshotTool: vi.fn().mockImplementation(() => ({
+    name: 'steel.screenshot',
+    description: 'Screenshot page',
+    call: vi.fn().mockResolvedValue('Screenshot OK'),
+  })),
+  SteelPdfTool: vi.fn().mockImplementation(() => ({
+    name: 'steel.pdf',
+    description: 'Generate PDF',
+    call: vi.fn().mockResolvedValue('PDF OK'),
+  })),
+  SteelHealthCheckTool: vi.fn().mockImplementation(() => ({
+    name: 'steel.health_check',
+    description: 'Health check',
+    call: vi.fn().mockResolvedValue('Healthy'),
+  })),
+}))
+
 vi.mock('../prompts/system', () => ({
   SYSTEM_PROMPT: 'You are a helpful AI assistant.',
 }))
@@ -125,21 +148,20 @@ describe('Agent', () => {
       expect(typeof result.output).toBe('string')
     })
 
-    it('includes all required tools', async () => {
+    it('includes configured tools', async () => {
       const { MemSearchTool, MemUpsertTool } = await import('@scout/memory')
-      const { BrowserNavigateTool, BrowserGetHtmlTool } = await import('../tools/browser.tool')
-      const { ParserReadTool } = await import('../tools/parser.tool')
-      const { ResearchWebTool } = await import('../tools/research-web.tool')
       const { SearchRunTool } = await import('../tools/search.tool')
+      const { SteelAdvancedScrapeTool, SteelScreenshotTool, SteelPdfTool, SteelHealthCheckTool } =
+        await import('../tools/steel.tool')
 
       await makeAgent()
 
-      // Verify all tool classes were instantiated
+      // Verify current tool classes were instantiated
       expect(SearchRunTool).toHaveBeenCalled()
-      expect(BrowserNavigateTool).toHaveBeenCalled()
-      expect(BrowserGetHtmlTool).toHaveBeenCalled()
-      expect(ParserReadTool).toHaveBeenCalled()
-      expect(ResearchWebTool).toHaveBeenCalled()
+      expect(SteelAdvancedScrapeTool).toHaveBeenCalled()
+      expect(SteelScreenshotTool).toHaveBeenCalled()
+      expect(SteelPdfTool).toHaveBeenCalled()
+      expect(SteelHealthCheckTool).toHaveBeenCalled()
       expect(MemSearchTool).toHaveBeenCalled()
       expect(MemUpsertTool).toHaveBeenCalled()
     })

@@ -86,15 +86,23 @@ export function ChatArea() {
     toolUsage?: Message['toolUsage'],
     executionTime?: number,
     toolsUsed?: number
-  ): Message => ({
-    id,
-    role: 'assistant',
-    content,
-    timestamp: new Date(),
-    toolUsage,
-    executionTime,
-    toolsUsed,
-  })
+  ): Message => {
+    // Ensure toolUsage timestamps are Date objects
+    const processedToolUsage = toolUsage?.map((usage) => ({
+      ...usage,
+      timestamp: usage.timestamp instanceof Date ? usage.timestamp : new Date(usage.timestamp),
+    }))
+
+    return {
+      id,
+      role: 'assistant',
+      content,
+      timestamp: new Date(),
+      toolUsage: processedToolUsage,
+      executionTime,
+      toolsUsed,
+    }
+  }
 
   const updateMessageContent = (messageId: string, newContent: string) => {
     setMessages((prev) =>
@@ -103,7 +111,27 @@ export function ChatArea() {
   }
 
   const updateMessageMetadata = (messageId: string, metadata: Partial<Message>) => {
-    setMessages((prev) => prev.map((msg) => (msg.id === messageId ? { ...msg, ...metadata } : msg)))
+    setMessages((prev) =>
+      prev.map((msg) => {
+        if (msg.id === messageId) {
+          const updatedMsg = { ...msg, ...metadata }
+          // Ensure timestamp is a Date object
+          if (updatedMsg.timestamp && typeof updatedMsg.timestamp === 'string') {
+            updatedMsg.timestamp = new Date(updatedMsg.timestamp)
+          }
+          // Ensure toolUsage timestamps are Date objects
+          if (updatedMsg.toolUsage) {
+            updatedMsg.toolUsage = updatedMsg.toolUsage.map((usage) => ({
+              ...usage,
+              timestamp:
+                usage.timestamp instanceof Date ? usage.timestamp : new Date(usage.timestamp),
+            }))
+          }
+          return updatedMsg
+        }
+        return msg
+      })
+    )
   }
 
   const applyChunkFirst = (
@@ -188,6 +216,9 @@ export function ChatArea() {
     content:
       'Sorry, I encountered an error while processing your request. The backend service might be unavailable.',
     timestamp: new Date(),
+    toolUsage: [],
+    executionTime: 0,
+    toolsUsed: 0,
   })
 
   const processLine = (
@@ -373,7 +404,7 @@ export function ChatArea() {
         scrollContainer.scrollTop = scrollContainer.scrollHeight
       }
     }
-  }) // messages dependency removed as effect doesn't use messages content directly
+  }, [messages])
 
   return (
     <div className="flex flex-col h-full">
@@ -521,28 +552,36 @@ export function ChatArea() {
                             Tool usage details
                           </summary>
                           <div className="mt-2 space-y-2 pl-4 border-l-2 border-muted">
-                            {message.toolUsage.map((usage, index) => (
-                              <div
-                                key={`${usage.tool}-${usage.timestamp.getTime()}-${index}`}
-                                className="bg-muted/30 rounded p-2"
-                              >
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className="font-medium text-foreground">{usage.tool}</span>
-                                  {usage.duration && (
-                                    <span className="text-muted-foreground">
-                                      {usage.duration}ms
+                            {message.toolUsage.map((usage, index) => {
+                              const timestamp =
+                                usage.timestamp instanceof Date
+                                  ? usage.timestamp
+                                  : new Date(usage.timestamp)
+                              return (
+                                <div
+                                  key={`${usage.tool}-${timestamp.getTime()}-${index}`}
+                                  className="bg-muted/30 rounded p-2"
+                                >
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="font-medium text-foreground">
+                                      {usage.tool}
                                     </span>
+                                    {usage.duration && (
+                                      <span className="text-muted-foreground">
+                                        {usage.duration}ms
+                                      </span>
+                                    )}
+                                  </div>
+                                  {usage.input != null && (
+                                    <div className="text-muted-foreground">
+                                      <strong>Input:</strong>{' '}
+                                      {JSON.stringify(usage.input).substring(0, 100)}
+                                      {JSON.stringify(usage.input).length > 100 && '...'}
+                                    </div>
                                   )}
                                 </div>
-                                {usage.input != null && (
-                                  <div className="text-muted-foreground">
-                                    <strong>Input:</strong>{' '}
-                                    {JSON.stringify(usage.input).substring(0, 100)}
-                                    {JSON.stringify(usage.input).length > 100 && '...'}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
+                              )
+                            })}
                           </div>
                         </details>
                       </div>
@@ -555,7 +594,10 @@ export function ChatArea() {
                     message.role === 'user' ? 'text-right' : 'text-left'
                   }`}
                 >
-                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {(message.timestamp instanceof Date
+                    ? message.timestamp
+                    : new Date(message.timestamp)
+                  ).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
               </div>
 
