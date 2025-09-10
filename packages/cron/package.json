@@ -14,8 +14,8 @@
     "test:watch": "vitest --watch"
   },
   "dependencies": {
-    "@scout/agent": "workspace:*",
-    "@scout/memory": "workspace:*",
+    "@scout/agent": "*",
+    "@scout/memory": "*",
     "commander": "^12.0.0",
     "cron-parser": "^4.9.0",
     "luxon": "^3.4.4",
