@@ -1,6 +1,6 @@
 # Scout - Docker Setup
 
-Run the complete Scout system locally using Docker with a single command!
+Run the complete Scout AI system locally using Docker with a single command!
 
 > 📁 **Docker files are located in the `docker/` directory**
 
@@ -8,8 +8,8 @@ Run the complete Scout system locally using Docker with a single command!
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/agentic-seek-ts.git
-cd agentic-seek-ts
+git clone https://github.com/your-username/scout.git
+cd scout
 
 # Start everything with Docker (from project root)
 ./start-services.sh
@@ -18,27 +18,34 @@ cd docker && ./start-docker.sh
 ```
 
 That's it! The entire system will be running at:
-- **Frontend**: http://localhost:3001
-- **Backend API** (host): http://localhost:8777
+- **Frontend & API**: http://localhost:3001
 - **SearxNG Search**: http://localhost:8080
+- **Service Status**: http://localhost:3001/api/services/status
 
 ## 🏗️ Architecture
 
 The Docker setup includes:
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │   Backend       │    │   SearxNG       │
-│   (Next.js)     │◄──►│   (Fastify)     │◄──►│   (Search)      │
-│   Port: 3001    │    │   Port: 7777    │    │   Port: 8080    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                              │                        │
-                              ▼                        ▼
-                       ┌─────────────────┐    ┌─────────────────┐
-                       │   Redis         │    │   LLM Studio    │
-                       │   (Cache)       │    │   (AI Model)    │
-                       │   Port: 6379    │    │   Port: 1234    │
-                       └─────────────────┘    └─────────────────┘
+┌─────────────────────────────────┐    ┌─────────────────┐
+│   Frontend & API                │    │   SearxNG       │
+│   (Next.js with integrated API) │◄──►│   (Search)      │
+│   Port: 3001                    │    │   Port: 8080    │
+└─────────────────────────────────┘    └─────────────────┘
+                │                        │
+                ▼                        ▼
+       ┌─────────────────┐    ┌─────────────────┐
+       │   Redis         │    │   LLM Studio    │
+       │   (Cache)       │    │   (AI Model)    │
+       │   Port: 6379    │    │   Port: 1234    │
+       └─────────────────┘    └─────────────────┘
+                │
+                ▼
+       ┌─────────────────┐
+       │   Steel Browser │
+       │   (Web Tools)   │
+       │   Port: 3003    │
+       └─────────────────┘
 ```
 
 ## 📋 Prerequisites
@@ -80,23 +87,26 @@ Download from: https://www.docker.com/products/docker-desktop
   - Multiple search engines
   - JSON API support
 
-### 🚀 Backend (Fastify)
-- **Purpose**: API server with LLM integration
-- **Port**: 7777
+### 🌐 Frontend & API (Next.js)
+- **Purpose**: Full-stack application with integrated API
+- **Port**: 3001
 - **Features**:
-  - RESTful API
-  - LLM Studio integration
-  - Agent orchestration
-  - Health checks
-
-### 🌐 Frontend (Next.js)
-- **Purpose**: Modern React UI
-- **Port**: 3000
-- **Features**:
-  - Real-time chat
-  - Agent monitoring
+  - Real-time chat interface
+  - Agent orchestration with streaming responses
+  - Service status monitoring
   - Tool execution viewer
   - Responsive design
+  - Integrated API routes (/api/*)
+
+### 🔧 Steel Browser
+- **Purpose**: Headless browser for web automation
+- **Port**: 3003 (API), 9224 (Chrome DevTools)
+- **Image**: ghcr.io/steel-dev/steel-browser-api:latest
+- **Features**:
+  - Web scraping and navigation
+  - Screenshot capture
+  - PDF generation
+  - JavaScript execution
 
 ## 🎯 AI Features Setup
 
@@ -129,15 +139,24 @@ SEARXNG_BASE_URL=http://localhost:8080/
 SEARXNG_SECRET_KEY=your-secret-key-here
 
 # LLM Studio Configuration
-LLM_STUDIO_BASE_URL=http://localhost:1234/v1
+LMSTUDIO_URL=http://host.docker.internal:1234/v1
+LMSTUDIO_API_KEY=lm-studio
+LOCAL_MODEL=openai/gpt-oss-20b
 
-# Backend Configuration (container)
+# Frontend Configuration (API is integrated - no backend URL needed)
 NODE_ENV=production
-PORT=7777
-HOST=0.0.0.0
+PORT=3001
+HOSTNAME=0.0.0.0
 
-# Frontend Configuration (host access to backend)
-NEXT_PUBLIC_BACKEND_URL=http://localhost:8777
+# Database and Service Connections (Docker service names)
+CHROMADB_URL=http://chromadb:8000
+STEEL_BROWSER_URL=http://steel-browser:3000
+REDIS_URL=redis://redis:6379
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=scout_cron
+POSTGRES_USER=scout
+POSTGRES_PASSWORD=scout_password
 ```
 
 ## 🚦 Usage
@@ -160,8 +179,9 @@ cd docker
 docker-compose logs -f
 
 # Specific service
-docker-compose logs -f backend
 docker-compose logs -f frontend
+docker-compose logs -f postgres
+docker-compose logs -f redis
 ```
 
 ### Stop Services
@@ -189,8 +209,8 @@ cd docker && docker-compose down -v
 # From docker directory
 cd docker
 
-# Check backend logs
-docker-compose logs backend
+# Check frontend logs
+docker-compose logs frontend
 
 # Check if SearxNG is ready
 curl http://localhost:8080
@@ -204,8 +224,11 @@ cd docker
 # Check frontend logs
 docker-compose logs frontend
 
-# Verify backend connectivity
-curl http://localhost:8777/health
+# Verify frontend API connectivity
+curl http://localhost:3001/api/health
+
+# Test service status endpoint
+curl http://localhost:3001/api/services/status
 ```
 
 ### LLM Not Working
@@ -216,8 +239,8 @@ curl http://localhost:1234/v1/models
 # From docker directory
 cd docker
 
-# Check backend logs for LLM errors
-docker-compose logs backend
+# Check frontend logs for LLM errors
+docker-compose logs frontend
 ```
 
 ### Port Conflicts
@@ -234,64 +257,100 @@ docker-compose down
 
 ### Health Checks
 ```bash
-# Backend health
-curl http://localhost:8777/health
+# Frontend & API health
+curl http://localhost:3001/api/health
 
-# Frontend health
-curl http://localhost:3000
+# Service status monitoring
+curl http://localhost:3001/api/services/status
 ```
 
 ### API Testing
 ```bash
-# Test chat functionality
-curl -X POST http://localhost:8777/query \
+# Test streaming chat functionality
+curl -X POST http://localhost:3001/api/agent/stream \
   -H "Content-Type: application/json" \
-  -d '{"query": "Hello, how are you?"}'
+  -d '{"messages": [{"role": "user", "content": "Hello, how are you?"}]}'
+
+# Test regular agent API
+curl -X POST http://localhost:3001/api/agent \
+  -H "Content-Type: application/json" \
+  -d '{"messages": [{"role": "user", "content": "Hello, how are you?"}]}'
 ```
 
 ## 📁 Project Structure
 
 ```
-agentic-seek-ts/
+scout/
 ├── apps/
-│   ├── backend/           # Fastify API server
-│   │   ├── src/
-│   │   ├── Dockerfile
-│   │   └── package.json
-│   └── frontend/          # Next.js React app
+│   └── frontend/          # Next.js React app with integrated API
 │       ├── src/
-│       ├── Dockerfile
+│       │   ├── app/
+│       │   │   ├── api/  # API routes (/api/*)
+│       │   │   └── page.tsx
+│       │   └── components/
+│       ├── Dockerfile     # Multi-stage build with Turbo
 │       └── package.json
 ├── packages/              # Shared packages
-│   ├── shared/           # TypeScript types & utils
-│   ├── llm/             # LLM providers
-│   ├── core/            # Core framework
-│   └── agents/          # Agent implementations
-├── docker/                # 🆕 Docker files moved here
-│   ├── docker-compose.yml     # Docker orchestration
-│   ├── docker-compose.override.yml
+│   ├── agent/            # LangChain-based agent implementation
+│   │   ├── src/
+│   │   │   ├── index.ts  # Main agent exports
+│   │   │   ├── model.ts  # LLM model configuration
+│   │   │   └── tools/    # Agent tools (search, browser, etc.)
+│   │   └── package.json
+│   ├── memory/           # ChromaDB vector store integration
+│   │   ├── src/
+│   │   │   ├── index.ts  # Memory management
+│   │   │   └── chroma-client.ts
+│   │   └── package.json
+│   └── cron/             # Cron job scheduling system
+│       ├── src/
+│       │   ├── index.ts  # Cron management
+│       │   └── runner.ts # Job execution
+│       └── package.json
+├── docker/                # Docker orchestration
+│   ├── docker-compose.yml     # Service definitions
 │   ├── start-docker.sh       # Startup script
-│   └── README-DOCKER.md      # This file
+│   └── README-DOCKER.md      # This documentation
 ├── start-services.sh     # Launcher script (project root)
+└── turbo.json           # Build orchestration
 ```
 
 ## 🎉 Features
 
+- ✅ **Unified Architecture** - Frontend & API integrated in Next.js
+- ✅ **Streaming Responses** - Real-time AI agent responses
+- ✅ **Service Monitoring** - Live status dashboard for all services
 - ✅ **Complete Local Setup** - Everything runs in Docker
-- ✅ **Privacy-Focused** - No cloud dependencies
-- ✅ **AI-Powered** - LLM integration with GPT-OSS
+- ✅ **Privacy-Focused** - No cloud dependencies required
+- ✅ **AI-Powered** - LLM integration with GPT-OSS models
 - ✅ **Modern UI** - Built with Next.js and shadcn/ui
-- ✅ **Real-time** - Live updates and monitoring
-- ✅ **Scalable** - Microservices architecture
-- ✅ **Developer Friendly** - Hot reload and debugging
+- ✅ **Real-time Updates** - Live streaming and monitoring
+- ✅ **Vector Store** - ChromaDB integration for memory
+- ✅ **Web Automation** - Steel Browser for web scraping
+- ✅ **Developer Friendly** - Hot reload and comprehensive logging
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Test with Docker: `./start-docker.sh`
-5. Submit a pull request
+4. Test with Docker:
+   ```bash
+   cd docker && ./start-docker.sh
+   ```
+5. Verify API endpoints:
+   ```bash
+   curl http://localhost:3001/api/health
+   curl http://localhost:3001/api/services/status
+   ```
+6. Submit a pull request
+
+### Development Notes
+
+- **API Integration**: The API is integrated into the Next.js frontend (no separate backend)
+- **Environment Variables**: No `NEXT_PUBLIC_BACKEND_URL` needed - frontend uses `window.location.origin`
+- **Streaming**: Agent responses use Server-Sent Events (SSE) for real-time updates
+- **Service Discovery**: Components auto-detect Docker vs localhost environments
 
 ## 📄 License
 

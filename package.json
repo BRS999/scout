@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "TypeScript-based AI agent system inspired by Scout",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": ["apps/frontend", "packages/*"],
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
@@ -14,7 +14,8 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "clean": "turbo clean",
-    "type-check": "turbo type-check"
+    "type-check": "turbo type-check",
+    "cron": "tsx packages/cron/src/cli.ts"
   },
   "dependencies": {
     "@langchain/community": "0.2.31",
@@ -23,15 +24,16 @@
     "@mozilla/readability": "0.5.0",
     "jsdom": "24.1.1",
     "langchain": "0.3.29",
+    "node-fetch": "^3.3.2",
     "openai": "4.67.3",
     "zod": "3.23.8"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@types/node": "^24.3.1",
     "@testing-library/jest-dom": "^6.1.0",
     "@testing-library/react": "^14.1.0",
     "@testing-library/user-event": "^14.5.0",
+    "@types/node": "^24.3.1",
     "@vitejs/plugin-react": "^4.2.0",
     "jsdom": "^23.0.0",
     "tsx": "^4.x",
@@ -41,9 +43,9 @@
     "vitest": "^1.0.0"
   },
   "optionalDependencies": {
-    "@biomejs/cli-linux-x64": "^1.9.4",
-    "@biomejs/cli-darwin-x64": "^1.9.4",
     "@biomejs/cli-darwin-arm64": "^1.9.4",
+    "@biomejs/cli-darwin-x64": "^1.9.4",
+    "@biomejs/cli-linux-x64": "^1.9.4",
     "@biomejs/cli-win32-x64": "^1.9.4"
   },
   "engines": {

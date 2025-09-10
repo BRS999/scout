@@ -1,0 +1,59 @@
+id: webwatcher_sample
+version: "1.0.0"
+name: "WebWatcher Sample Job"
+description: "Sample cron job that watches a website for changes"
+owner: "scout-user"
+
+# Scheduling configuration
+schedule: "0 */4 * * *"  # Every 4 hours
+timezone: "America/New_York"
+jitterMs: 300000  # 5 minutes random jitter
+catchup: true  # Run missed executions
+concurrency: "skip"  # Skip if already running
+priority: 1
+
+# Time window (optional)
+# notBefore: 1640995200000  # 2022-01-01
+# notAfter: 1672531200000   # 2023-01-01
+
+# Graph execution
+graphId: "webwatcher.v1"
+inputs:
+  url: "https://example.com"
+  checkInterval: 3600000  # 1 hour in ms
+  selectors:
+    - ".main-content"
+    - "article"
+  notifyOnChange: true
+
+# Resource limits
+resources:
+  networkScope: "allowlist"
+  allowlist:
+    - "example.com"
+    - "*.example.com"
+  rateLimits:
+    "example.com": 10  # 10 requests per minute
+  maxBandwidth: 10485760  # 10MB
+  maxSteps: 15
+  maxRunSeconds: 600  # 10 minutes
+  maxModelTokens: 8000
+
+# Retry configuration
+retry:
+  maxRetries: 3
+  strategy: "exponential"
+  delays: [60000, 300000, 1800000]  # 1min, 5min, 30min
+  retryableCodes: ["TIMEOUT", "NETWORK_ERROR"]
+
+# Alert configuration
+alerts:
+  onSuccess: false
+  onFailure: true
+  onMaterialChange: true
+
+# Labels for organization
+labels:
+  category: "monitoring"
+  environment: "sample"
+  team: "platform"

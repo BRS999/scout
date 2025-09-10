@@ -70,3 +70,66 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Improve code syntax highlighting contrast in light mode */
+@layer utilities {
+  /* Light mode overrides for better code readability */
+  :root {
+    .hljs-comment,
+    .hljs-quote {
+      color: #6e7781 !important; /* Darker gray for comments */
+    }
+    
+    .hljs-variable,
+    .hljs-template-variable,
+    .hljs-tag,
+    .hljs-name,
+    .hljs-selector-id,
+    .hljs-selector-class,
+    .hljs-regexp,
+    .hljs-deletion {
+      color: #d73a49 !important; /* Darker red */
+    }
+    
+    .hljs-number,
+    .hljs-built_in,
+    .hljs-builtin-name,
+    .hljs-literal,
+    .hljs-type,
+    .hljs-params,
+    .hljs-meta,
+    .hljs-link {
+      color: #005cc5 !important; /* Darker blue */
+    }
+    
+    .hljs-attribute {
+      color: #6f42c1 !important; /* Darker purple */
+    }
+    
+    .hljs-string,
+    .hljs-symbol,
+    .hljs-bullet,
+    .hljs-addition {
+      color: #22863a !important; /* Darker green */
+    }
+    
+    .hljs-title,
+    .hljs-section {
+      color: #6f42c1 !important; /* Darker purple */
+      font-weight: 600;
+    }
+    
+    .hljs-keyword,
+    .hljs-selector-tag {
+      color: #d73a49 !important; /* Darker red */
+    }
+  }
+  
+  /* Dark mode - keep original colors */
+  .dark {
+    .hljs-comment,
+    .hljs-quote {
+      color: #7c7c7c !important;
+    }
+  }
+}

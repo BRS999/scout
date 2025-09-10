@@ -41,19 +41,19 @@ echo ""
 echo "🔍 Service Status:"
 echo "  📊 Redis:        http://localhost:6379"
 echo "  🔎 SearxNG:      http://localhost:8080"
-echo "  🚀 Backend API:  http://localhost:8777"
-echo "  🌐 Frontend:     http://localhost:3001"
+echo "  🌐 Frontend API: http://localhost:3001"
+echo "  📡 API Health:   http://localhost:3001/api/health"
 echo ""
 echo "⏳ Waiting for services to be ready..."
 
-# Wait for backend to be healthy
-echo "Waiting for backend to be ready..."
+# Wait for frontend API to be healthy
+echo "Waiting for frontend API to be ready..."
 timeout=120
 counter=0
-while ! curl -f http://localhost:8777/health > /dev/null 2>&1; do
+while ! curl -f http://localhost:3001/api/health > /dev/null 2>&1; do
     if [ $counter -ge $timeout ]; then
-        echo "❌ Backend failed to start within ${timeout} seconds"
-        echo "Check the logs with: docker-compose logs backend"
+        echo "❌ Frontend API failed to start within ${timeout} seconds"
+        echo "Check the logs with: docker-compose logs frontend"
         exit 1
     fi
     counter=$((counter + 5))
@@ -62,7 +62,7 @@ while ! curl -f http://localhost:8777/health > /dev/null 2>&1; do
 done
 
 echo ""
-echo "✅ Backend is ready!"
+echo "✅ Frontend API is ready!"
 echo ""
 
 # Wait for frontend to be ready

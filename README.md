@@ -40,14 +40,16 @@ A powerful, privacy focused AI research assistant that runs entirely on your loc
 
 ## Features
 
+- **Unified Architecture**: Frontend & API integrated in Next.js
+- **Streaming Responses**: Real-time AI agent responses with Server-Sent Events
+- **Service Status Monitoring**: Live status dashboard for all services
 - **TypeScript First**: Full type safety with modern TypeScript
 - **Monorepo Architecture**: Organized packages for better maintainability
 - **Vector Memory**: ChromaDB-powered semantic storage and retrieval
 - **Web Research Agent**: Intelligent agent with web search and content analysis
 - **Steel Browser Automation**: REST API-powered browser automation with CDP
-- **Service Status Monitoring**: Real-time status dashboard for all services
 - **Tool Integration**: Built-in tools for web scraping, search, research, and automation
-- **Real-time Chat**: WebSocket-based chat interface
+- **Real-time Chat**: Streaming chat interface with instant responses
 - **Fast Linting**: Biome for lightning-fast code quality checks
 - **Docker Ready**: Complete containerized deployment with SearX, Redis, and Steel Browser
 
@@ -55,25 +57,39 @@ A powerful, privacy focused AI research assistant that runs entirely on your loc
 
 ```
 scout/
-├── packages/
-│   ├── agent/           # LangChain-powered agent with integrated tools
-│   │   ├── src/
-│   │   │   ├── index.ts         # Main agent exports
-│   │   │   ├── model.ts         # LLM model configuration
-│   │   │   ├── prompts/         # System prompts
-│   │   │   ├── recorder/        # Conversation recording
-│   │   │   └── tools/           # Web search, scraping, and research tools
-│   └── memory/          # ChromaDB vector storage and memory management
-│       ├── src/
-│       │   ├── chroma-client.ts # ChromaDB connection
-│       │   ├── vector-store.ts  # Vector operations
-│       │   ├── memory-manager.ts # Memory management
-│       │   └── tools/           # Memory search and upsert tools
 ├── apps/
-│   ├── backend/         # Fastify API server with WebSocket support
-│   └── frontend/        # Next.js web application with chat interface
-├── docker/              # Docker configurations and compose files
-├── scripts/             # Build and deployment scripts
+│   └── frontend/          # Next.js React app with integrated API
+│       ├── src/
+│       │   ├── app/
+│       │   │   ├── api/  # API routes (/api/*) - no separate backend
+│       │   │   └── page.tsx
+│       │   └── components/
+│       ├── Dockerfile     # Multi-stage build with Turbo
+│       └── package.json
+├── packages/
+│   ├── agent/            # LangChain-based agent implementation
+│   │   ├── src/
+│   │   │   ├── index.ts  # Main agent exports
+│   │   │   ├── model.ts  # LLM model configuration
+│   │   │   ├── prompts/  # System prompts
+│   │   │   └── tools/    # Web search, scraping, and research tools
+│   │   └── package.json
+│   ├── memory/           # ChromaDB vector storage and memory management
+│   │   ├── src/
+│   │   │   ├── chroma-client.ts # ChromaDB connection
+│   │   │   ├── vector-store.ts  # Vector operations
+│   │   │   ├── memory-manager.ts # Memory management
+│   │   │   └── tools/           # Memory search and upsert tools
+│   │   └── package.json
+│   └── cron/             # Cron job scheduling system
+│       ├── src/
+│       │   ├── index.ts  # Cron management
+│       │   └── runner.ts # Job execution
+│       └── package.json
+├── docker/                # Docker orchestration
+│   ├── docker-compose.yml     # Service definitions
+│   ├── start-docker.sh       # Startup script
+│   └── README-DOCKER.md      # Docker-specific documentation
 ├── searxng/            # SearX search engine configuration
 ├── biome.json           # Biome configuration
 ├── turbo.json           # Turborepo configuration
@@ -82,18 +98,19 @@ scout/
 
 ## Tech Stack
 
-- **Runtime**: Node.js 18+
+- **Runtime**: Node.js 24+
 - **Language**: TypeScript 5.0+
 - **Build Tool**: Turborepo
 - **Linting/Formatting**: Biome
 - **AI Framework**: LangChain.js
 - **Vector Database**: ChromaDB
-- **Backend**: Fastify + Node.js
-- **Frontend**: Next.js + React + Tailwind CSS
+- **Full-Stack Framework**: Next.js + React + Tailwind CSS
+- **API**: Next.js API Routes (integrated)
 - **Web Search**: SearX
 - **Web Scraping**: Readability.js
 - **Browser Automation**: Steel Browser + Chrome DevTools Protocol
-- **LLM Integration**: LM Studio (local) or OpenAI API 
+- **LLM Integration**: LM Studio (local) or OpenAI API
+- **Streaming**: Server-Sent Events (SSE) 
 
 ## Quick Start
 
@@ -120,11 +137,11 @@ For the full experience with programmatic browser automation, use our enhanced s
 ```
 
 **Services will be available at:**
-- **Frontend**: http://localhost:3001
-- **Backend API**: http://localhost:8777
+- **Frontend & API**: http://localhost:3001
 - **Steel Browser API**: http://localhost:3003
 - **Steel Browser CDP**: http://localhost:9224
 - **SearX Search**: http://localhost:8080
+- **Service Status**: http://localhost:3001/api/services/status
 
 ### Installation
 
@@ -162,21 +179,24 @@ cp .env.example .env
 
 **For Docker Deployment:**
 ```bash
-# Environment variables are configured directly in docker-compose.yml
-# Edit docker/docker-compose.yml in the backend service's environment section:
+# Environment variables are configured in docker/docker-compose.yml
+# Edit the frontend service's environment section:
 
 environment:
   # LM Studio connection (from host)
   - LMSTUDIO_URL=http://host.docker.internal:1234/v1
   # Database and external services (Docker service names)
   - CHROMADB_URL=http://chromadb:8000
-  - SEARNX_URL=http://searxng:8080
-  # ... other variables
+  - SEARXNG_BASE_URL=http://searxng:8080
+  - STEEL_BROWSER_URL=http://steel-browser:3000
+  # Docker container detection
+  - DOCKER_CONTAINER=true
 
 # Key variables to modify:
 # - LMSTUDIO_URL: Change if LM Studio runs on different port
 # - CHROMADB_URL: Uses Docker service name for container networking
-# - SEARNX_URL: Uses Docker service name for container networking
+# - SEARXNG_BASE_URL: Uses Docker service name for container networking
+# - STEEL_BROWSER_URL: Uses Docker service name for container networking
 ```
 
 4. **Choose Your Deployment Method**:
@@ -200,8 +220,8 @@ npm run dev
 cd docker
 docker-compose up -d
 
-# App will be available at http://localhost:3001 (frontend)
-# Backend API at http://localhost:8777
+# App will be available at http://localhost:3001 (frontend & API)
+# Service status at http://localhost:3001/api/services/status
 ```
 
 5. **Launch Scout**:
@@ -217,8 +237,8 @@ npm run dev
 **For Docker Deployment:**
 ```bash
 # Applications will be available at:
-# Frontend: http://localhost:3001
-# Backend API: http://localhost:8777
+# Frontend & API: http://localhost:3001
+# Service Status: http://localhost:3001/api/services/status
 ```
 
 ### What You Get
@@ -433,8 +453,8 @@ npm run dev
 # Start everything in containers
 cd docker && docker-compose up -d
 
-# Access at http://localhost:3001 (frontend)
-# Backend API at http://localhost:8777
+# Access at http://localhost:3001 (frontend & API)
+# Service status at http://localhost:3001/api/services/status
 ```
 
 **Common Environment Customizations:**
@@ -442,15 +462,23 @@ cd docker && docker-compose up -d
 **For Local Development (.env):**
 - Change `LMSTUDIO_URL` if LM Studio runs on different port
 - Add `OPENAI_API_KEY` for OpenAI instead of LM Studio
+- Modify service URLs if running services on different ports
 
 **For Docker Deployment (docker-compose.yml):**
-- Modify `LMSTUDIO_URL` in backend service environment
+- Modify `LMSTUDIO_URL` in frontend service environment
 - Update model name in `LOCAL_MODEL`
-- Adjust port mappings if needed
+- Adjust service URLs if needed (ChromaDB, SearX, Steel Browser)
+- Environment variables are auto-detected based on `DOCKER_CONTAINER=true`
 
 ## Architecture Overview
 
-Scout combines three core components for powerful, private AI research:
+Scout combines four core components for powerful, private AI research in a unified architecture:
+
+### Unified Full-Stack Application (Next.js)
+- **Frontend**: Modern React interface with real-time streaming
+- **API**: Integrated Next.js API routes handling all backend functionality
+- **Streaming**: Server-Sent Events for real-time AI responses
+- **Service Discovery**: Auto-detection of Docker vs localhost environments
 
 ### Memory System (ChromaDB)
 Persistent vector storage that learns from every interaction, enabling contextual recall and knowledge accumulation across sessions.
@@ -458,11 +486,8 @@ Persistent vector storage that learns from every interaction, enabling contextua
 ### Research Agent (LangChain)
 Intelligent agent that orchestrates web search, content analysis, and multi-source synthesis for comprehensive research capabilities.
 
-### Web Interface (Next.js)
-Real-time chat interface for seamless interaction, with WebSocket support for instant responses and conversation continuity.
-
 ### Containerized Services
-Docker-based deployment with SearX (privacy-focused search) and Redis for optimal performance and easy setup.
+Docker-based deployment with SearX (privacy-focused search), Redis, Steel Browser, and PostgreSQL for optimal performance and easy setup.
 
 ## Contributing
 
@@ -474,14 +499,32 @@ We welcome contributions! Please:
 4. Add tests if applicable
 5. Submit a pull request
 
+## Migration Notes
+
+### Architecture Evolution
+Scout has evolved from a microservices architecture (separate frontend/backend) to a unified full-stack application:
+
+- **Before**: Fastify backend (port 8777) + Next.js frontend (port 3001)
+- **After**: Next.js full-stack app (port 3001) with integrated API routes
+- **Benefits**: Simplified deployment, better performance, easier development
+
+### Key Changes
+- ✅ API routes moved from `/apps/backend` to `/apps/frontend/src/app/api`
+- ✅ Environment variables simplified (no NEXT_PUBLIC_BACKEND_URL needed)
+- ✅ Streaming responses implemented with Server-Sent Events
+- ✅ Service status monitoring integrated
+- ✅ Docker deployment unified into single container
+
 ## Acknowledgments
 
 - **Original AgenticSeek**: For the inspiration and core concepts
 - **SearX**: For the excellent search engine
 - **ChromaDB**: For powerful vector storage
 - **LangChain**: For the AI framework foundation
+- **Next.js**: For the excellent full-stack framework
 - **Node.js**: For the reliable runtime
 - **Biome**: For the amazing developer tools
+- **Steel Browser**: For programmatic browser automation
 
 
 

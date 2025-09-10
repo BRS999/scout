@@ -86,8 +86,10 @@ export function ServiceStatus() {
   const fetchServiceStatus = useCallback(async () => {
     setIsLoading(true)
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:7777'
-      const response = await fetch(`${backendUrl}/api/services/status`)
+      // Use the current origin since API is now part of the same Next.js app
+      const baseUrl =
+        typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001'
+      const response = await fetch(`${baseUrl}/api/services/status`)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)

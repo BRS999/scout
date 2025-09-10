@@ -1,4 +1,39 @@
 services:
+  # PostgreSQL Database for Cron Jobs
+  postgres:
+    container_name: scout-postgres
+    image: ankane/pgvector:v0.5.1
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: scout_cron
+      POSTGRES_USER: scout
+      POSTGRES_PASSWORD: scout_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - scout-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scout -d scout_cron"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "1"
+
   redis:
     container_name: scout-redis
     image: docker.io/valkey/valkey:8-alpine
@@ -77,15 +112,17 @@ services:
     networks:
       - scout-net
 
-  backend:
-    container_name: scout-backend
+
+  frontend:
+    container_name: scout-frontend
     build:
       context: ..
-      dockerfile: ./apps/backend/Dockerfile
+      dockerfile: ./apps/frontend/Dockerfile
     restart: unless-stopped
     ports:
-      - "8777:7777"
+      - "3001:3001"
     environment:
+      - HOSTNAME=0.0.0.0
       # LM Studio connection (from host)
       - LMSTUDIO_URL=http://host.docker.internal:1234/v1
       - LMSTUDIO_API_KEY=lm-studio
@@ -95,47 +132,31 @@ services:
       - CHROMADB_URL=http://chromadb:8000
       - SEARXNG_BASE_URL=http://searxng:8080
       - SQLITE_PATH=/data/memory.db
+      # PostgreSQL for Main Scout Database
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=scout
+      - POSTGRES_USER=scout
+      - POSTGRES_PASSWORD=scout_password
+      # PostgreSQL for Agent Memory
+      - AGENT_DATABASE_URL=postgresql://scout:scout_password@postgres:5432/scout_agent
+      # PostgreSQL for Cron Jobs
+      - CRON_DATABASE_URL=postgresql://scout:scout_password@postgres:5432/scout_cron
+      # Redis for caching
+      - REDIS_URL=redis://redis:6379
       # Steel Browser integration
       - STEEL_BROWSER_URL=http://steel-browser:3000
       - STEEL_API_URL=http://steel-browser:3000
       - STEEL_CDP_URL=http://steel-browser:9223
       # Application settings
       - NODE_ENV=production
-      - HOST=0.0.0.0
       - OPENAI_API_KEY=lm-studio
-      - PORT=7777
-      # Backend specific settings
-      - SEARNX_URL=http://searxng:8080
-      - NEXT_PUBLIC_BACKEND_URL=http://localhost:7777
     depends_on:
+      - postgres
+      - redis
       - searxng
       - chromadb
       - steel-browser
-    networks:
-      - scout-net
-    volumes:
-      - backend-data:/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7777/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  frontend:
-    container_name: scout-frontend
-    build:
-      context: ..
-      dockerfile: ./apps/frontend/Dockerfile
-      args:
-        NEXT_PUBLIC_BACKEND_URL: "http://localhost:8777"
-    restart: unless-stopped
-    ports:
-      - "3001:3001"
-    environment:
-      - HOSTNAME=0.0.0.0
-    depends_on:
-      - backend
     networks:
       - scout-net
     healthcheck:
@@ -146,8 +167,8 @@ services:
       start_period: 50s
   
 volumes:
+  postgres-data:
   redis-data:
-  backend-data:
   chroma-data:
   steel-cache:
 

@@ -37,7 +37,8 @@ export function RightPane({ onClose }: RightPaneProps) {
   useEffect(() => {
     const fetchLatestAnswer = async () => {
       try {
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:7777'
+        const backendUrl =
+          typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001'
         const response = await fetch(`${backendUrl}/latest_answer`)
         if (response.ok) {
           const data = await response.json()
@@ -58,7 +59,8 @@ export function RightPane({ onClose }: RightPaneProps) {
 
     const fetchScreenshot = async () => {
       try {
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:7777'
+        const backendUrl =
+          typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001'
         const timestamp = new Date().getTime()
         const response = await fetch(
           `${backendUrl}/screenshots/updated_screen.png?timestamp=${timestamp}`

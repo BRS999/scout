@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Textarea } from '@/components/ui/textarea'
-import { Bot, Clock, Code, Search, Send, Sparkles, User, Wrench, Zap } from 'lucide-react'
+import { Bot, Clock, Code, Search, Send, Sparkles, User } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import rehypeHighlight from 'rehype-highlight'
@@ -15,15 +15,7 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
-  toolUsage?: Array<{
-    tool: string
-    input: unknown
-    output: unknown
-    timestamp: Date
-    duration?: number
-  }>
   executionTime?: number
-  toolsUsed?: number
 }
 
 interface StreamingData {
@@ -31,15 +23,7 @@ interface StreamingData {
   content?: string
   message?: string
   timestamp?: string
-  toolUsage?: Array<{
-    tool: string
-    input: unknown
-    output: unknown
-    timestamp: Date
-    duration?: number
-  }>
   executionTime?: number
-  toolsUsed?: number
 }
 
 const SAMPLE_PROMPTS = [
@@ -78,27 +62,13 @@ export function ChatArea() {
     timestamp: new Date(),
   })
 
-  const createAssistantMessage = (
-    id: string,
-    content: string,
-    toolUsage?: Message['toolUsage'],
-    executionTime?: number,
-    toolsUsed?: number
-  ): Message => {
-    // Ensure toolUsage timestamps are Date objects
-    const processedToolUsage = toolUsage?.map((usage) => ({
-      ...usage,
-      timestamp: usage.timestamp instanceof Date ? usage.timestamp : new Date(usage.timestamp),
-    }))
-
+  const createAssistantMessage = (id: string, content: string, executionTime?: number): Message => {
     return {
       id,
       role: 'assistant',
       content,
       timestamp: new Date(),
-      toolUsage: processedToolUsage,
       executionTime,
-      toolsUsed,
     }
   }
 
@@ -117,14 +87,6 @@ export function ChatArea() {
           if (updatedMsg.timestamp && typeof updatedMsg.timestamp === 'string') {
             updatedMsg.timestamp = new Date(updatedMsg.timestamp)
           }
-          // Ensure toolUsage timestamps are Date objects
-          if (updatedMsg.toolUsage) {
-            updatedMsg.toolUsage = updatedMsg.toolUsage.map((usage) => ({
-              ...usage,
-              timestamp:
-                usage.timestamp instanceof Date ? usage.timestamp : new Date(usage.timestamp),
-            }))
-          }
           return updatedMsg
         }
         return msg
@@ -137,13 +99,7 @@ export function ChatArea() {
     data: StreamingData
   ): { accumulatedContent: string; isFirstChunk: boolean } => {
     setIsLoading(false)
-    const assistantMessage = createAssistantMessage(
-      id,
-      data.content || '',
-      data.toolUsage,
-      data.executionTime,
-      data.toolsUsed
-    )
+    const assistantMessage = createAssistantMessage(id, data.content || '', data.executionTime)
     setMessages((prev) => [...prev, assistantMessage])
     return { accumulatedContent: data.content || '', isFirstChunk: false }
   }
@@ -181,9 +137,7 @@ export function ChatArea() {
       case 'done':
         updateMessageMetadata(assistantMessageId, {
           timestamp: data.timestamp ? new Date(data.timestamp) : new Date(),
-          toolUsage: data.toolUsage,
           executionTime: data.executionTime,
-          toolsUsed: data.toolsUsed,
         })
         setIsStreaming(false)
         return { accumulatedContent, isFirstChunk, shouldBreak: true }
@@ -214,9 +168,7 @@ export function ChatArea() {
     content:
       'Sorry, I encountered an error while processing your request. The backend service might be unavailable.',
     timestamp: new Date(),
-    toolUsage: [],
     executionTime: 0,
-    toolsUsed: 0,
   })
 
   const processLine = (
@@ -294,7 +246,8 @@ export function ChatArea() {
     const assistantMessageId = (Date.now() + 1).toString()
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:7777'
+      const backendUrl =
+        typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001'
       const response = await fetch(`${backendUrl}/api/agent/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -343,7 +296,8 @@ export function ChatArea() {
 
   // Health check function
   const checkBackendHealth = useCallback(async () => {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:7777'
+    const backendUrl =
+      typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001'
 
     try {
       // Try to reach the backend with a simple request
@@ -499,74 +453,13 @@ export function ChatArea() {
                   )}
                 </div>
 
-                {/* Tool Usage Information */}
-                {message.role === 'assistant' && (message.toolUsage || message.executionTime) && (
+                {/* Execution Time */}
+                {message.role === 'assistant' && message.executionTime && (
                   <div className="px-4 pb-2">
-                    <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                      {message.executionTime && (
-                        <div className="flex items-center space-x-1">
-                          <Clock className="h-3 w-3" />
-                          <span>{message.executionTime}ms</span>
-                        </div>
-                      )}
-                      {message.toolsUsed !== undefined && (
-                        <div className="flex items-center space-x-1">
-                          <Wrench className="h-3 w-3" />
-                          <span>
-                            {message.toolsUsed} tool{message.toolsUsed !== 1 ? 's' : ''}
-                          </span>
-                        </div>
-                      )}
-                      {message.toolUsage && message.toolUsage.length > 0 && (
-                        <div className="flex items-center space-x-1">
-                          <Zap className="h-3 w-3" />
-                          <span>Debug info</span>
-                        </div>
-                      )}
+                    <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      <span>{message.executionTime}ms</span>
                     </div>
-
-                    {/* Tool Usage Details */}
-                    {message.toolUsage && message.toolUsage.length > 0 && (
-                      <div className="mt-2 space-y-1">
-                        <details className="text-xs">
-                          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                            Tool usage details
-                          </summary>
-                          <div className="mt-2 space-y-2 pl-4 border-l-2 border-muted">
-                            {message.toolUsage.map((usage, index) => {
-                              const timestamp =
-                                usage.timestamp instanceof Date
-                                  ? usage.timestamp
-                                  : new Date(usage.timestamp)
-                              return (
-                                <div
-                                  key={`${usage.tool}-${timestamp.getTime()}-${index}`}
-                                  className="bg-muted/30 rounded p-2"
-                                >
-                                  <div className="flex items-center justify-between mb-1">
-                                    <span className="font-medium text-foreground">
-                                      {usage.tool}
-                                    </span>
-                                    {usage.duration && (
-                                      <span className="text-muted-foreground">
-                                        {usage.duration}ms
-                                      </span>
-                                    )}
-                                  </div>
-                                  {usage.input != null && (
-                                    <div className="text-muted-foreground">
-                                      <strong>Input:</strong>{' '}
-                                      {JSON.stringify(usage.input).substring(0, 100)}
-                                      {JSON.stringify(usage.input).length > 100 && '...'}
-                                    </div>
-                                  )}
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </details>
-                      </div>
-                    )}
                   </div>
                 )}
 
