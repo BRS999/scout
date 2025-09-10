@@ -1,3 +1,4 @@
+import { SidebarProvider } from '@/components/ui/sidebar'
 import { ThemeProvider } from '@/lib/theme-provider'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
@@ -19,7 +20,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider defaultTheme="system" storageKey="scout-theme">
-          {children}
+          <SidebarProvider>{children}</SidebarProvider>
         </ThemeProvider>
       </body>
     </html>

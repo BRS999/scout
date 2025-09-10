@@ -1,7 +1,5 @@
 'use client'
 
-import { ServiceStatus } from '@/components/ServiceStatus'
-import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -410,25 +408,6 @@ export function ChatArea() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b border-border bg-gradient-to-r from-background to-muted/20">
-        <div className="flex items-center space-x-3">
-          <div className="flex-shrink-0 w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
-            <Bot className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              Scout
-            </h1>
-            <p className="text-xs text-muted-foreground">AI powered agent system</p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <ServiceStatus />
-          <ThemeToggle />
-        </div>
-      </div>
-
       {/* Messages */}
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         <div className="space-y-4">

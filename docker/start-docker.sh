@@ -28,11 +28,9 @@ fi
 echo "📦 Building and starting services..."
 echo ""
 
-# Use COMPOSE_BAKE for better build performance if available
-if [ "$USE_BAKE" = "true" ]; then
-    echo "🚀 Using COMPOSE_BAKE for optimized builds..."
-    export COMPOSE_BAKE=true
-fi
+# Use COMPOSE_BAKE for better build performance
+echo "🚀 Using COMPOSE_BAKE for optimized builds..."
+export COMPOSE_BAKE=true
 
 # Start all services with build
 docker-compose up --build -d
