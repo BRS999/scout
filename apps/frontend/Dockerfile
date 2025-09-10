@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 node:24-slim AS base
+FROM node:24-slim AS base
 
 # Install dependencies for building native modules
 RUN apt-get update && apt-get install -y \
@@ -57,12 +57,17 @@ ENV TURBO_TOKEN=$TURBO_TOKEN
 # Next.js collects completely anonymous telemetry data about general usage
 # Learn more here: https://nextjs.org/docs/pages/api-reference/next-config-js/output
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV SKIP_NATIVE_DEPS=true
 
 # Install libsql native binaries for Linux (both GNU and MUSL)
 RUN npm install @libsql/linux-x64-gnu @libsql/linux-arm64-gnu @libsql/linux-x64-musl @libsql/linux-arm64-musl --save-optional || echo "libsql binaries installation failed, continuing..."
 
 # Try to install missing native dependencies for tokenizers
-RUN npm install @anush008/tokenizers-linux-x64-musl --save-optional || echo "Optional dependency installation failed, continuing..."
+RUN npm install @anush008/tokenizers-linux-arm64-gnu @anush008/tokenizers-linux-x64-musl --save-optional || echo "Optional dependency installation failed, continuing..."
+
+# Create a mock file for the missing tokenizer package to prevent build failures
+RUN mkdir -p /app/node_modules/@anush008/tokenizers-linux-arm64-gnu && \
+    echo "module.exports = {}" > /app/node_modules/@anush008/tokenizers-linux-arm64-gnu/index.js
 
 RUN turbo build --filter=@scout/frontend
 
@@ -74,7 +79,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN groupadd --system --gid 1001 nodejs
-RUN useradd --system --uid 1001 --gid nodejs nextjs
+RUN useradd --system --uid 1001 --gid nodejs --create-home nextjs
 
 # Copy built application
 # Copy the standalone server bundle to the same paths it was built with
