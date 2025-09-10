@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   // Ensure native modules are not bundled into the client
   serverExternalPackages: [
     '@scout/cron',
+    '@scout/agent',
+    '@scout/memory',
     '@mastra/fastembed',
     'onnxruntime-node',
     'tokenizers',
