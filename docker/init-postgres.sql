@@ -4,13 +4,13 @@
 -- Create the main scout database (if not exists)
 -- Note: This is handled by POSTGRES_DB environment variable, but we'll create additional databases
 
--- Create the scout_agent database for Mastra memory
+-- Create all databases first
+-- Note: These will fail if the databases already exist, but that's okay
+CREATE DATABASE scout;
 CREATE DATABASE scout_agent;
-
--- Create the scout_cron database for cron jobs
 CREATE DATABASE scout_cron;
 
--- Switch to the main scout database
+-- Connect to the main scout database
 \c scout;
 
 -- Create tables for main scout application (chats, etc.)

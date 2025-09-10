@@ -20,7 +20,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U scout -d scout_cron"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 60s
     cap_drop:
       - ALL
     cap_add:
@@ -138,6 +139,8 @@ services:
       - POSTGRES_DB=scout
       - POSTGRES_USER=scout
       - POSTGRES_PASSWORD=scout_password
+      # Mastra Database URL (for Mastra's internal storage)
+      - DATABASE_URL=postgresql://scout:scout_password@postgres:5432/scout
       # PostgreSQL for Agent Memory
       - AGENT_DATABASE_URL=postgresql://scout:scout_password@postgres:5432/scout_agent
       # PostgreSQL for Cron Jobs
