@@ -1,6 +1,14 @@
-FROM node:24-alpine AS base
+FROM node:24-slim AS base
 
-RUN apk add --no-cache libc6-compat curl bash
+# Install required packages for Debian slim
+RUN apt-get update && apt-get install -y \
+    curl \
+    bash \
+    python3 \
+    make \
+    g++ \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 RUN npm install -g pnpm@9.15.0 turbo@2.5.6
@@ -26,6 +34,9 @@ ARG TURBO_TOKEN=""
 ENV TURBO_TEAM=$TURBO_TEAM
 ENV TURBO_TOKEN=$TURBO_TOKEN
 
+# Increase Node.js memory limit for better performance with transformers
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
 RUN turbo build --filter=@scout/frontend
 
 FROM base AS runner
@@ -33,9 +44,19 @@ WORKDIR /app/apps/frontend
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-RUN addgroup --system --gid 1001 nodejs \
- && adduser --system --uid 1001 nextjs
+# Install essential dependencies for @xenova/transformers
+RUN apt-get update && apt-get install -y \
+    libgomp1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd --system --gid 1001 nodejs \
+ && useradd --system --uid 1001 --gid nodejs nextjs
+
+# Copy node_modules with native binaries from installer stage
+COPY --from=installer --chown=nextjs:nodejs /app/node_modules ./node_modules/
 
 COPY --from=installer --chown=nextjs:nodejs /app/apps/frontend/.next/standalone ./
 COPY --from=installer --chown=nextjs:nodejs /app/apps/frontend/.next/static ./apps/frontend/.next/static
