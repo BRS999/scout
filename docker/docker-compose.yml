@@ -61,6 +61,28 @@ services:
     networks:
       - scout-net
 
+  postgres:
+    container_name: scout-postgres
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=scout
+      - POSTGRES_USER=scout
+      - POSTGRES_PASSWORD=scout123
+      - POSTGRES_INITDB_ARGS="--encoding=UTF-8"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scout -d scout"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - scout-net
+
   steel-browser:
     container_name: scout-steel-browser
     image: ghcr.io/steel-dev/steel-browser-api:latest
@@ -98,9 +120,12 @@ services:
       # Steel Browser integration
       - STEEL_BROWSER_URL=http://steel-browser:3000
       - CHROMADB_URL=http://chromadb:8000
+      # Database configuration
+      - DATABASE_URL=postgresql://scout:scout123@postgres:5432/scout
     depends_on:
       - searxng
       - steel-browser
+      - postgres
     networks:
       - scout-net
     healthcheck:
@@ -113,6 +138,7 @@ services:
 volumes:
   redis-data:
   chroma-data:
+  postgres-data:
   steel-cache:
 
 networks:

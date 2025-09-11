@@ -1,6 +1,18 @@
 import { createTool } from '@mastra/core'
 import { z } from 'zod'
 
+interface SearxSearchResult {
+  title: string
+  url: string
+  content: string
+  engine: string
+}
+
+interface SearxSearchResponse {
+  results: SearxSearchResult[]
+  number_of_results?: number
+}
+
 export const searxSearchTool = createTool({
   id: 'Get Web Search Results',
   inputSchema: z.object({
@@ -28,17 +40,15 @@ export const searxSearchTool = createTool({
         throw new Error(`Search failed: ${response.status} ${response.statusText}`)
       }
 
-      const data = await response.json()
+      const data = (await response.json()) as SearxSearchResponse
 
       // Process and format results
-      const results = (data.results || [])
-        .slice(0, limit)
-        .map((result: { title: string; url: string; content: string; engine: string }) => ({
-          title: result.title || 'No title',
-          url: result.url || '',
-          content: result.content || '',
-          engine: result.engine || 'unknown',
-        }))
+      const results = (data.results || []).slice(0, limit).map((result: SearxSearchResult) => ({
+        title: result.title || 'No title',
+        url: result.url || '',
+        content: result.content || '',
+        engine: result.engine || 'unknown',
+      }))
 
       return {
         success: true,

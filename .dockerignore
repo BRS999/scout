@@ -46,3 +46,9 @@ docker-compose.override.yml
 
 # External services
 searxng/*
+.db-*
+
+# Database files (SQLite)
+apps/frontend/*.db
+apps/frontend/*.db-*
+apps/frontend/scout-agent.db*
