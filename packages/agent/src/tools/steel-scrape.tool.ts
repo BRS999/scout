@@ -6,19 +6,17 @@ const steelScrapeSchema = z.object({
   format: z
     .array(z.enum(['html', 'readability', 'cleaned_html', 'markdown']))
     .default(['markdown'])
-    .describe('Output formats: html (raw), readability (clean content), cleaned_html (sanitized), markdown (clean markdown)'),
+    .describe(
+      'Output formats: html (raw), readability (clean content), cleaned_html (sanitized), markdown (clean markdown)'
+    ),
 })
 
 export const steelScrapeTool = createTool({
   id: 'steel-scrape',
-  description:
-    'Scrape a webpage using Steel browser. Returns content in the requested format.',
+  description: 'Scrape a webpage using Steel browser. Returns content in the requested format.',
   inputSchema: steelScrapeSchema,
   execute: async (context) => {
-    const {
-      url,
-      format = ['markdown'],
-    } = context.context
+    const { url, format = ['markdown'] } = context.context
 
     try {
       const steelUrl = process.env.STEEL_BROWSER_URL || 'http://localhost:3003'
@@ -45,7 +43,7 @@ export const steelScrapeTool = createTool({
         }
       }
 
-      const scrapeResult = await scrapeResponse.json() as {
+      const scrapeResult = (await scrapeResponse.json()) as {
         content?: {
           html?: string
           readability?: string
@@ -63,7 +61,7 @@ export const steelScrapeTool = createTool({
       // Get the content based on requested format
       let extractedContent = ''
       let contentType = ''
-      
+
       if (format.includes('markdown') && scrapeResult.content?.markdown) {
         extractedContent = scrapeResult.content.markdown
         contentType = 'markdown'
@@ -94,7 +92,6 @@ export const steelScrapeTool = createTool({
         title: scrapeResult.metadata?.title,
         finalUrl: scrapeResult.metadata?.url,
       }
-
     } catch (error) {
       return {
         success: false,
