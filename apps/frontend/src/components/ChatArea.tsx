@@ -436,6 +436,29 @@ export function ChatArea() {
     const content = messageContent || input.trim()
     if (!content || isLoading || isStreaming) return
 
+    // Ensure a stable thread ID across requests so Mastra memory persists
+    // Persist to localStorage so the thread survives page reloads
+    let threadId = ''
+    let resourceId = ''
+    try {
+      if (typeof window !== 'undefined') {
+        threadId = localStorage.getItem('scout_thread_id') || ''
+        if (!threadId) {
+          threadId = `thread_${Date.now()}`
+          localStorage.setItem('scout_thread_id', threadId)
+        }
+        resourceId = localStorage.getItem('scout_resource_id') || ''
+        if (!resourceId) {
+          resourceId = 'scout_resource_default'
+          localStorage.setItem('scout_resource_id', resourceId)
+        }
+      }
+    } catch {
+      // Fallback if localStorage is unavailable
+      threadId = `thread_${Date.now()}`
+      resourceId = 'scout_resource_default'
+    }
+
     const userMessage = createUserMessage(content)
     setMessages((prev) => [...prev, userMessage])
     setInput('')
@@ -453,6 +476,8 @@ export function ChatArea() {
             ...messages.map((m) => ({ role: m.role, content: m.content })),
             { role: 'user', content },
           ],
+          threadId,
+          resourceId,
         }),
       })
 
