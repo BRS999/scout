@@ -55,29 +55,47 @@ A powerful, privacy focused AI research assistant that runs entirely on your loc
 
 ```
 scout/
-├── packages/
-│   ├── agent/           # LangChain-powered agent with integrated tools
-│   │   ├── src/
-│   │   │   ├── index.ts         # Main agent exports
-│   │   │   ├── model.ts         # LLM model configuration
-│   │   │   ├── prompts/         # System prompts
-│   │   │   ├── recorder/        # Conversation recording
-│   │   │   └── tools/           # Web search, scraping, and research tools
-│   └── memory/          # ChromaDB vector storage and memory management
-│       ├── src/
-│       │   ├── chroma-client.ts # ChromaDB connection
-│       │   ├── vector-store.ts  # Vector operations
-│       │   ├── memory-manager.ts # Memory management
-│       │   └── tools/           # Memory search and upsert tools
 ├── apps/
-│   ├── backend/         # Fastify API server with WebSocket support
 │   └── frontend/        # Next.js web application with chat interface
+│       ├── src/
+│       │   ├── app/           # Next.js app router
+│       │   │   ├── api/       # API routes (agent streaming, health checks)
+│       │   │   ├── favicon.ico
+│       │   │   ├── globals.css
+│       │   │   ├── layout.tsx
+│       │   │   └── page.tsx   # Main chat interface
+│       │   ├── components/    # React components
+│       │   │   ├── ui/        # Shadcn/ui components
+│       │   │   ├── ChatArea.tsx
+│       │   │   ├── RightPane.tsx
+│       │   │   └── ServiceStatus.tsx
+│       │   └── hooks/         # Custom React hooks
+│       ├── .env.example       # Frontend environment variables
+│       ├── next.config.ts     # Next.js configuration
+│       ├── tailwind.config.ts # Tailwind CSS configuration
+│       └── package.json       # Frontend dependencies
+├── packages/
+│   └── agent/           # Mastra-powered agent with integrated tools
+│       ├── src/
+│       │   ├── agents/        # Scout agent implementation
+│       │   ├── embedders/     # Text embedding providers
+│       │   ├── model.ts       # LLM model configuration
+│       │   ├── prompts/       # System prompts
+│       │   ├── stream.ts      # WebSocket streaming
+│       │   └── tools/         # Web search, scraping, and research tools
+│       ├── dist/              # Compiled TypeScript output
+│       ├── tsconfig.json      # TypeScript configuration
+│       └── package.json       # Agent package dependencies
 ├── docker/              # Docker configurations and compose files
-├── scripts/             # Build and deployment scripts
+│   ├── docker-compose.yml     # Multi-service Docker setup
+│   ├── postgres/              # PostgreSQL initialization
+│   └── README-DOCKER.md       # Docker deployment guide
 ├── searxng/            # SearX search engine configuration
-├── biome.json           # Biome configuration
-├── turbo.json           # Turborepo configuration
-└── package.json         # Root package configuration
+├── examples/           # Usage examples and guides
+├── biome.json          # Biome configuration
+├── turbo.json          # Turborepo configuration
+├── tsconfig.base.json  # Base TypeScript configuration
+└── package.json        # Root package configuration
 ```
 
 ## Tech Stack
@@ -86,10 +104,9 @@ scout/
 - **Language**: TypeScript 5.0+
 - **Build Tool**: Turborepo
 - **Linting/Formatting**: Biome
-- **AI Framework**: LangChain.js
+- **AI Framework**: Mastra
 - **Vector Database**: ChromaDB
-- **Backend**: Fastify + Node.js
-- **Frontend**: Next.js + React + Tailwind CSS
+- **Frontend & API**: Next.js + React + Tailwind CSS (API routes)
 - **Web Search**: SearX
 - **Web Scraping**: Readability.js
 - **Browser Automation**: Steel Browser + Chrome DevTools Protocol
@@ -120,8 +137,7 @@ For the full experience with programmatic browser automation, use our enhanced s
 ```
 
 **Services will be available at:**
-- **Frontend**: http://localhost:3001
-- **Backend API**: http://localhost:8777
+- **Frontend & API**: http://localhost:3009 (dev) / http://localhost:3010 (docker)
 - **Steel Browser API**: http://localhost:3003
 - **Steel Browser CDP**: http://localhost:9224
 - **SearX Search**: http://localhost:8080
@@ -147,36 +163,50 @@ pnpm install
 
 3. **Environment Configuration**:
 
+**Environment Files:**
+```bash
+# Frontend environment file
+apps/frontend/.env.example  # Template for frontend .env.local file
+```
+
 **For Local Development:**
 ```bash
-# The .env file is already configured for local development
-# Default settings work with LM Studio at localhost:1234
+# Copy environment template
+cp apps/frontend/.env.example apps/frontend/.env.local
+
+# The default settings work with LM Studio at localhost:1234
 # No changes needed for basic local setup!
 
-# Optional: Copy template for customization
-cp .env.example .env
-
 # For OpenAI instead of LM Studio (optional):
-# Edit .env and set: OPENAI_API_KEY=your_api_key_here
+# Edit apps/frontend/.env.local and set: OPENAI_API_KEY=your_api_key_here
 ```
 
 **For Docker Deployment:**
 ```bash
 # Environment variables are configured directly in docker-compose.yml
-# Edit docker/docker-compose.yml in the backend service's environment section:
+# Edit docker/docker-compose.yml in the frontend service's environment section:
 
 environment:
   # LM Studio connection (from host)
   - LMSTUDIO_URL=http://host.docker.internal:1234/v1
+  - LMSTUDIO_API_KEY=lm-studio
+  # Local model configuration
+  - LOCAL_MODEL=openai/gpt-oss-20b
   # Database and external services (Docker service names)
   - CHROMADB_URL=http://chromadb:8000
-  - SEARNX_URL=http://searxng:8080
-  # ... other variables
+  - SEARXNG_BASE_URL=http://searxng:8080
+  - DATABASE_URL=postgresql://scout:scout123@postgres:5432/scout
+  # Steel Browser integration
+  - STEEL_BROWSER_URL=http://steel-browser:3000
 
 # Key variables to modify:
 # - LMSTUDIO_URL: Change if LM Studio runs on different port
+# - LMSTUDIO_API_KEY: API key for LM Studio
+# - LOCAL_MODEL: Choose your preferred local model
 # - CHROMADB_URL: Uses Docker service name for container networking
-# - SEARNX_URL: Uses Docker service name for container networking
+# - SEARXNG_BASE_URL: Uses Docker service name for container networking
+# - DATABASE_URL: PostgreSQL connection string
+# - STEEL_BROWSER_URL: Steel Browser service endpoint
 ```
 
 4. **Choose Your Deployment Method**:
@@ -200,8 +230,161 @@ pnpm run dev
 cd docker
 docker-compose up -d
 
-# App will be available at http://localhost:3001 (frontend)
-# Backend API at http://localhost:8777
+# App will be available at http://localhost:3010 (frontend)
+# All API endpoints are served from the frontend container
+```
+
+## 🐳 Docker Deployment
+
+For the easiest setup experience, Scout provides a complete Docker environment with all dependencies pre-configured.
+
+### Quick Docker Start
+
+```bash
+# From project root - start all services
+./start-services.sh
+
+# Or from docker directory
+cd docker && ./start-docker.sh
+```
+
+**Services Available:**
+- **Frontend + API**: http://localhost:3010
+- **SearxNG Search**: http://localhost:8080
+- **ChromaDB Vector DB**: http://localhost:8000 (internal)
+
+### Docker Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│ Frontend + API  │    │   SearxNG       │    │   ChromaDB      │
+│   (Next.js)     │◄──►│   (Search)      │◄──►│   (Vector DB)   │
+│   Port: 3010    │    │   Port: 8000    │    │   Port: 8000    │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │
+         │                       │
+         ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐
+│   LLM Studio    │    │   PostgreSQL    │
+│   (AI Model)    │    │   (Database)    │
+│   Port: 1234    │    │   Port: 5432    │
+└─────────────────┘    └─────────────────┘
+```
+
+### Docker Services
+
+#### 🔍 SearxNG
+- **Purpose**: Privacy-focused metasearch engine
+- **Port**: 8080
+- **Features**: No tracking, multiple search engines, JSON API support
+
+#### 🗄️ ChromaDB
+- **Purpose**: Vector database for semantic search and memory
+- **Port**: 8000
+- **Features**: Vector embeddings storage, semantic search, persistent knowledge base
+
+#### 🐘 PostgreSQL
+- **Purpose**: Primary database with pgvector extension
+- **Port**: 5432
+- **Features**: Vector operations, structured data storage, ACID compliance
+
+#### 🌐 Frontend + API (Next.js)
+- **Purpose**: Unified React UI with API routes
+- **Port**: 3010
+- **Features**: Real-time chat, Mastra agent integration, Steel Browser automation
+
+### Docker Environment Setup
+
+The Docker setup automatically configures all environment variables. For local development with Docker:
+
+```bash
+# Copy environment template
+cp apps/frontend/.env.example apps/frontend/.env.local
+```
+
+Key Docker environment variables (auto-configured):
+```bash
+# LLM Configuration
+LMSTUDIO_URL=http://host.docker.internal:1234/v1
+LMSTUDIO_API_KEY=lm-studio
+LOCAL_MODEL=openai/gpt-oss-20b
+
+# Services (Docker internal networking)
+SEARXNG_BASE_URL=http://searxng:8080
+CHROMADB_URL=http://chromadb:8000
+STEEL_BROWSER_URL=http://steel-browser:3000
+DATABASE_URL=postgresql://scout:scout123@postgres:5432/scout
+```
+
+### Docker Commands
+
+```bash
+# Start all services
+cd docker && docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# View specific service logs
+docker-compose logs -f frontend
+
+# Stop all services
+docker-compose down
+
+# Clean up (remove volumes)
+docker-compose down -v
+
+# Restart services
+docker-compose restart
+```
+
+### Docker Troubleshooting
+
+#### Health Checks
+```bash
+# Frontend health
+curl http://localhost:3010/api/health
+
+# SearxNG readiness
+curl http://localhost:8080
+
+# ChromaDB heartbeat
+curl http://localhost:8000/api/v1/heartbeat
+```
+
+#### Common Issues
+```bash
+# Check service logs
+docker-compose logs frontend
+
+# Restart specific service
+docker-compose restart frontend
+
+# View resource usage
+docker stats
+```
+
+#### LLM Studio Connection
+```bash
+# Verify LLM Studio is running
+curl http://localhost:1234/v1/models
+
+# Check frontend logs for LLM errors
+docker-compose logs frontend
+```
+
+### Docker Development Workflow
+
+```bash
+# Start all services
+cd docker && docker-compose up -d
+
+# Services will be available at:
+# Frontend: http://localhost:3010
+# All API endpoints served from frontend container
+
+# View logs in real-time
+docker-compose logs -f frontend
 ```
 
 5. **Launch Scout**:
@@ -211,14 +394,14 @@ docker-compose up -d
 # Start the application
 pnpm run dev
 
-# Open http://localhost:3000 in your browser
+# Open http://localhost:3009 in your browser
 ```
 
 **For Docker Deployment:**
 ```bash
 # Applications will be available at:
-# Frontend: http://localhost:3001
-# Backend API: http://localhost:8777
+# Frontend: http://localhost:3010
+# All API endpoints served from frontend container
 ```
 
 ### What You Get
@@ -268,7 +451,7 @@ The dropdown shows online/offline status with automatic refresh every 30 seconds
 ## Packages
 
 ### `@scout/agent`
-LangChain-powered intelligent agent with advanced web research capabilities and integrated tool ecosystem.
+Mastra-powered intelligent agent with advanced web research capabilities and integrated tool ecosystem.
 
 **Research Capabilities:**
 - **Multi-source analysis**: Simultaneously searches and analyzes multiple sources
@@ -425,7 +608,7 @@ cd docker && docker-compose up -d
 # Start development servers
 pnpm run dev
 
-# Open browser at http://localhost:3000
+# Open browser at http://localhost:3009
 ```
 
 **Docker Development Workflow:**
@@ -433,18 +616,18 @@ pnpm run dev
 # Start everything in containers
 cd docker && docker-compose up -d
 
-# Access at http://localhost:3001 (frontend)
-# Backend API at http://localhost:8777
+# Access at http://localhost:3010 (frontend)
+# All API endpoints served from frontend container
 ```
 
 **Common Environment Customizations:**
 
-**For Local Development (.env):**
+**For Local Development (apps/frontend/.env.local):**
 - Change `LMSTUDIO_URL` if LM Studio runs on different port
 - Add `OPENAI_API_KEY` for OpenAI instead of LM Studio
 
 **For Docker Deployment (docker-compose.yml):**
-- Modify `LMSTUDIO_URL` in backend service environment
+- Modify `LMSTUDIO_URL` in frontend service environment
 - Update model name in `LOCAL_MODEL`
 - Adjust port mappings if needed
 
@@ -455,11 +638,11 @@ Scout combines three core components for powerful, private AI research:
 ### Memory System (ChromaDB)
 Persistent vector storage that learns from every interaction, enabling contextual recall and knowledge accumulation across sessions.
 
-### Research Agent (LangChain)
+### Research Agent (Mastra)
 Intelligent agent that orchestrates web search, content analysis, and multi-source synthesis for comprehensive research capabilities.
 
-### Web Interface (Next.js)
-Real-time chat interface for seamless interaction, with WebSocket support for instant responses and conversation continuity.
+### Web Interface & API (Next.js)
+Real-time chat interface with integrated API routes for seamless interaction, with WebSocket support for instant responses and conversation continuity.
 
 ### Containerized Services
 Docker-based deployment with SearX (privacy-focused search) and Redis for optimal performance and easy setup.
@@ -479,7 +662,7 @@ We welcome contributions! Please:
 - **Original AgenticSeek**: For the inspiration and core concepts
 - **SearX**: For the excellent search engine
 - **ChromaDB**: For powerful vector storage
-- **LangChain**: For the AI framework foundation
+- **Mastra**: For the AI agent framework foundation
 - **Node.js**: For the reliable runtime
 - **Biome**: For the amazing developer tools
 
