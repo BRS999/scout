@@ -33,6 +33,7 @@ export const scoutAgent = new Agent({
       threads: {
         generateTitle: true,
       },
+      workingMemory: { enabled: true },
     },
   }),
 })
