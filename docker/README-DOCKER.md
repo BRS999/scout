@@ -18,8 +18,7 @@ cd docker && ./start-docker.sh
 ```
 
 That's it! The entire system will be running at:
-- **Frontend**: http://localhost:3001
-- **Backend API** (host): http://localhost:8777
+- **Frontend + API**: http://localhost:3001
 - **SearxNG Search**: http://localhost:8080
 
 ## 🏗️ Architecture
@@ -28,17 +27,17 @@ The Docker setup includes:
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │   Backend       │    │   SearxNG       │
-│   (Next.js)     │◄──►│   (Fastify)     │◄──►│   (Search)      │
-│   Port: 3001    │    │   Port: 7777    │    │   Port: 8080    │
+│ Frontend + API  │    │   SearxNG       │    │   Redis         │
+│   (Next.js)     │◄──►│   (Search)      │◄──►│   (Cache)       │
+│   Port: 3001    │    │   Port: 8080    │    │   Port: 6379    │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
-                              │                        │
-                              ▼                        ▼
-                       ┌─────────────────┐    ┌─────────────────┐
-                       │   Redis         │    │   LLM Studio    │
-                       │   (Cache)       │    │   (AI Model)    │
-                       │   Port: 6379    │    │   Port: 1234    │
-                       └─────────────────┘    └─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│   LLM Studio    │
+│   (AI Model)    │
+│   Port: 1234    │
+└─────────────────┘
 ```
 
 ## 📋 Prerequisites
@@ -80,22 +79,15 @@ Download from: https://www.docker.com/products/docker-desktop
   - Multiple search engines
   - JSON API support
 
-### 🚀 Backend (Fastify)
-- **Purpose**: API server with LLM integration
-- **Port**: 7777
-- **Features**:
-  - RESTful API
-  - LLM Studio integration
-  - Agent orchestration
-  - Health checks
-
-### 🌐 Frontend (Next.js)
-- **Purpose**: Modern React UI
-- **Port**: 3000
+### 🌐 Frontend + API (Next.js)
+- **Purpose**: Unified React UI with API routes
+- **Port**: 3001
 - **Features**:
   - Real-time chat
   - Agent monitoring
   - Tool execution viewer
+  - API routes for agent interaction
+  - LLM Studio integration
   - Responsive design
 
 ## 🎯 AI Features Setup
@@ -131,13 +123,14 @@ SEARXNG_SECRET_KEY=your-secret-key-here
 # LLM Studio Configuration
 LLM_STUDIO_BASE_URL=http://localhost:1234/v1
 
-# Backend Configuration (container)
+# Frontend + API Configuration (container)
 NODE_ENV=production
-PORT=7777
-HOST=0.0.0.0
+HOSTNAME=0.0.0.0
 
-# Frontend Configuration (host access to backend)
-NEXT_PUBLIC_BACKEND_URL=http://localhost:8777
+# LLM Configuration
+LMSTUDIO_URL=http://host.docker.internal:1234/v1
+LMSTUDIO_API_KEY=lm-studio
+LOCAL_MODEL=Llama-3.1-8B-Instruct
 ```
 
 ## 🚦 Usage
@@ -160,7 +153,6 @@ cd docker
 docker-compose logs -f
 
 # Specific service
-docker-compose logs -f backend
 docker-compose logs -f frontend
 ```
 
@@ -184,19 +176,7 @@ cd docker && docker-compose down -v
 
 ## 🔍 Troubleshooting
 
-### Backend Not Starting
-```bash
-# From docker directory
-cd docker
-
-# Check backend logs
-docker-compose logs backend
-
-# Check if SearxNG is ready
-curl http://localhost:8080
-```
-
-### Frontend Not Loading
+### Frontend + API Not Starting
 ```bash
 # From docker directory
 cd docker
@@ -204,8 +184,11 @@ cd docker
 # Check frontend logs
 docker-compose logs frontend
 
-# Verify backend connectivity
-curl http://localhost:8777/health
+# Check if API is responding
+curl http://localhost:3001/api/health
+
+# Check if SearxNG is ready
+curl http://localhost:8080
 ```
 
 ### LLM Not Working
@@ -234,19 +217,19 @@ docker-compose down
 
 ### Health Checks
 ```bash
-# Backend health
-curl http://localhost:8777/health
-
 # Frontend health
-curl http://localhost:3000
+curl http://localhost:3001
+
+# API health
+curl http://localhost:3001/api/health
 ```
 
 ### API Testing
 ```bash
 # Test chat functionality
-curl -X POST http://localhost:8777/query \
+curl -X POST http://localhost:3001/api/agent/stream \
   -H "Content-Type: application/json" \
-  -d '{"query": "Hello, how are you?"}'
+  -d '{"messages": [{"role": "user", "content": "Hello, how are you?"}]}'
 ```
 
 ## 📁 Project Structure

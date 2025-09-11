@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "description": "TypeScript-based AI agent system inspired by Scout",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
@@ -48,7 +47,7 @@
   },
   "engines": {
     "node": ">=18.0.0",
-    "npm": ">=8.0.0"
+    "pnpm": ">=8.0.0"
   },
-  "packageManager": "npm@11.5.1"
+  "packageManager": "pnpm@9.15.0"
 }

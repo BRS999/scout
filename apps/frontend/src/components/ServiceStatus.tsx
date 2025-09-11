@@ -86,8 +86,7 @@ export function ServiceStatus() {
   const fetchServiceStatus = useCallback(async () => {
     setIsLoading(true)
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:7777'
-      const response = await fetch(`${backendUrl}/api/services/status`)
+      const response = await fetch('/api/health')
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)

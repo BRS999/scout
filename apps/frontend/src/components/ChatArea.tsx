@@ -26,6 +26,157 @@ interface Message {
   toolsUsed?: number
 }
 
+interface ToolUsageDetailsProps {
+  toolUsage: Message['toolUsage']
+}
+
+const ToolUsageDetails: React.FC<ToolUsageDetailsProps> = ({ toolUsage }) => {
+  if (!toolUsage || toolUsage.length === 0) return null
+
+  return (
+    <div className="mt-2 space-y-1">
+      <details className="text-xs">
+        <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+          Tool usage details
+        </summary>
+        <div className="mt-2 space-y-2 pl-4 border-l-2 border-muted">
+          {toolUsage.map((usage, index) => {
+            const timestamp =
+              usage.timestamp instanceof Date ? usage.timestamp : new Date(usage.timestamp)
+            return (
+              <div
+                key={`${usage.tool}-${timestamp.getTime()}-${index}`}
+                className="bg-muted/30 rounded p-2"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-medium text-foreground">{usage.tool}</span>
+                  {usage.duration && (
+                    <span className="text-muted-foreground">{usage.duration}ms</span>
+                  )}
+                </div>
+                {usage.input != null && (
+                  <div className="text-muted-foreground">
+                    <strong>Input:</strong> {JSON.stringify(usage.input).substring(0, 100)}
+                    {JSON.stringify(usage.input).length > 100 && '...'}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </details>
+    </div>
+  )
+}
+
+interface MessageItemProps {
+  message: Message
+  index: number
+}
+
+const MessageItem: React.FC<MessageItemProps> = ({ message, index }) => {
+  const messageClassName = `flex items-start space-x-3 animate-in fade-in-10 slide-in-from-bottom-2 ${
+    message.role === 'user' ? 'justify-end' : 'justify-start'
+  }`
+
+  const containerClassName = `max-w-[75%] shadow-sm ${
+    message.role === 'user'
+      ? 'bg-gradient-to-br from-primary to-primary/90 text-primary-foreground rounded-2xl rounded-br-md'
+      : 'bg-card border border-border rounded-2xl rounded-bl-md'
+  }`
+
+  const timestampClassName = `px-4 pb-2 text-xs opacity-60 ${
+    message.role === 'user' ? 'text-right' : 'text-left'
+  }`
+
+  const timestamp = (
+    message.timestamp instanceof Date ? message.timestamp : new Date(message.timestamp)
+  ).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+  return (
+    <div
+      key={message.id}
+      className={messageClassName}
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
+      {message.role === 'assistant' && (
+        <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg">
+          <Bot className="w-5 h-5 text-primary-foreground" />
+        </div>
+      )}
+
+      <div className={containerClassName}>
+        <div className="p-4">
+          {message.role === 'assistant' ? (
+            <div className="text-sm prose prose-sm max-w-none dark:prose-invert">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeHighlight]}
+                components={{
+                  pre: ({ children }) => (
+                    <pre className="bg-background/50 border border-border/50 rounded-lg p-3 overflow-x-auto my-2">
+                      {children}
+                    </pre>
+                  ),
+                  code: ({ children, className, ...props }) => (
+                    <code
+                      className={`${className || ''} bg-background/50 border border-border/50 rounded px-1.5 py-0.5 text-xs`}
+                      {...props}
+                    >
+                      {children}
+                    </code>
+                  ),
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
+            </div>
+          ) : (
+            <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+          )}
+        </div>
+
+        {/* Tool Usage Information */}
+        {message.role === 'assistant' && (message.toolUsage || message.executionTime) && (
+          <div className="px-4 pb-2">
+            <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+              {message.executionTime && (
+                <div className="flex items-center space-x-1">
+                  <Clock className="h-3 w-3" />
+                  <span>{message.executionTime}ms</span>
+                </div>
+              )}
+              {message.toolsUsed !== undefined && (
+                <div className="flex items-center space-x-1">
+                  <Wrench className="h-3 w-3" />
+                  <span>
+                    {message.toolsUsed} tool{message.toolsUsed !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              )}
+              {message.toolUsage && message.toolUsage.length > 0 && (
+                <div className="flex items-center space-x-1">
+                  <Zap className="h-3 w-3" />
+                  <span>Debug info</span>
+                </div>
+              )}
+            </div>
+            <ToolUsageDetails toolUsage={message.toolUsage} />
+          </div>
+        )}
+
+        <div className={timestampClassName}>{timestamp}</div>
+      </div>
+
+      {message.role === 'user' && (
+        <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-secondary to-secondary/80 rounded-xl flex items-center justify-center shadow-lg">
+          <User className="w-5 h-5 text-secondary-foreground" />
+        </div>
+      )}
+    </div>
+  )
+}
+
 interface StreamingData {
   type: 'start' | 'chunk' | 'error' | 'done'
   content?: string
@@ -294,8 +445,7 @@ export function ChatArea() {
     const assistantMessageId = (Date.now() + 1).toString()
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:7777'
-      const response = await fetch(`${backendUrl}/api/agent/stream`, {
+      const response = await fetch('/api/agent/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -343,18 +493,10 @@ export function ChatArea() {
 
   // Health check function
   const checkBackendHealth = useCallback(async () => {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:7777'
-
     try {
-      // Try to reach the backend with a simple request
-      const response = await fetch(`${backendUrl}/api/agent`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: 'health_check' }],
-        }),
+      // Use the dedicated health check endpoint
+      const response = await fetch('/api/health', {
+        method: 'GET',
         // Short timeout for health check
         signal: AbortSignal.timeout(5000),
       })
@@ -365,7 +507,7 @@ export function ChatArea() {
         setBackendStatus('error')
       }
     } catch (error) {
-      console.warn('Backend health check failed:', error)
+      console.warn('API health check failed:', error)
       setBackendStatus('offline')
     }
   }, [])
@@ -449,145 +591,7 @@ export function ChatArea() {
           )}
 
           {messages.map((message, index) => (
-            <div
-              key={message.id}
-              className={`flex items-start space-x-3 animate-in fade-in-10 slide-in-from-bottom-2 ${
-                message.role === 'user' ? 'justify-end' : 'justify-start'
-              }`}
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              {message.role === 'assistant' && (
-                <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg">
-                  <Bot className="w-5 h-5 text-primary-foreground" />
-                </div>
-              )}
-
-              <div
-                className={`max-w-[75%] shadow-sm ${
-                  message.role === 'user'
-                    ? 'bg-gradient-to-br from-primary to-primary/90 text-primary-foreground rounded-2xl rounded-br-md'
-                    : 'bg-card border border-border rounded-2xl rounded-bl-md'
-                }`}
-              >
-                <div className="p-4">
-                  {message.role === 'assistant' ? (
-                    <div className="text-sm prose prose-sm max-w-none dark:prose-invert">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeHighlight]}
-                        components={{
-                          pre: ({ children }) => (
-                            <pre className="bg-background/50 border border-border/50 rounded-lg p-3 overflow-x-auto my-2">
-                              {children}
-                            </pre>
-                          ),
-                          code: ({ children, className, ...props }) => (
-                            <code
-                              className={`${className || ''} bg-background/50 border border-border/50 rounded px-1.5 py-0.5 text-xs`}
-                              {...props}
-                            >
-                              {children}
-                            </code>
-                          ),
-                        }}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
-                    </div>
-                  ) : (
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
-                  )}
-                </div>
-
-                {/* Tool Usage Information */}
-                {message.role === 'assistant' && (message.toolUsage || message.executionTime) && (
-                  <div className="px-4 pb-2">
-                    <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                      {message.executionTime && (
-                        <div className="flex items-center space-x-1">
-                          <Clock className="h-3 w-3" />
-                          <span>{message.executionTime}ms</span>
-                        </div>
-                      )}
-                      {message.toolsUsed !== undefined && (
-                        <div className="flex items-center space-x-1">
-                          <Wrench className="h-3 w-3" />
-                          <span>
-                            {message.toolsUsed} tool{message.toolsUsed !== 1 ? 's' : ''}
-                          </span>
-                        </div>
-                      )}
-                      {message.toolUsage && message.toolUsage.length > 0 && (
-                        <div className="flex items-center space-x-1">
-                          <Zap className="h-3 w-3" />
-                          <span>Debug info</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Tool Usage Details */}
-                    {message.toolUsage && message.toolUsage.length > 0 && (
-                      <div className="mt-2 space-y-1">
-                        <details className="text-xs">
-                          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                            Tool usage details
-                          </summary>
-                          <div className="mt-2 space-y-2 pl-4 border-l-2 border-muted">
-                            {message.toolUsage.map((usage, index) => {
-                              const timestamp =
-                                usage.timestamp instanceof Date
-                                  ? usage.timestamp
-                                  : new Date(usage.timestamp)
-                              return (
-                                <div
-                                  key={`${usage.tool}-${timestamp.getTime()}-${index}`}
-                                  className="bg-muted/30 rounded p-2"
-                                >
-                                  <div className="flex items-center justify-between mb-1">
-                                    <span className="font-medium text-foreground">
-                                      {usage.tool}
-                                    </span>
-                                    {usage.duration && (
-                                      <span className="text-muted-foreground">
-                                        {usage.duration}ms
-                                      </span>
-                                    )}
-                                  </div>
-                                  {usage.input != null && (
-                                    <div className="text-muted-foreground">
-                                      <strong>Input:</strong>{' '}
-                                      {JSON.stringify(usage.input).substring(0, 100)}
-                                      {JSON.stringify(usage.input).length > 100 && '...'}
-                                    </div>
-                                  )}
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </details>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div
-                  className={`px-4 pb-2 text-xs opacity-60 ${
-                    message.role === 'user' ? 'text-right' : 'text-left'
-                  }`}
-                >
-                  {(message.timestamp instanceof Date
-                    ? message.timestamp
-                    : new Date(message.timestamp)
-                  ).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
-              </div>
-
-              {message.role === 'user' && (
-                <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-secondary to-secondary/80 rounded-xl flex items-center justify-center shadow-lg">
-                  <User className="w-5 h-5 text-secondary-foreground" />
-                </div>
-              )}
-            </div>
+            <MessageItem key={message.id} message={message} index={index} />
           ))}
 
           {isLoading && (

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3009",
     "build": "next build --turbo",
     "start": "next start",
     "lint": "biome check .",
@@ -19,6 +19,7 @@
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-tooltip": "^1.1.4",
     "@tailwindcss/typography": "^0.5.16",
+    "@scout/agent": "workspace:*",
     "ai": "^3.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
