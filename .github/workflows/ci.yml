@@ -31,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install Turbo globally
+        run: pnpm install -g turbo
+
       - name: Configure Turbo Cache
         run: |
           echo "TURBO_FORCE=true" >> $GITHUB_ENV

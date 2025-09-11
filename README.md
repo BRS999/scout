@@ -102,7 +102,7 @@ Get started with Scout in minutes and maintain complete privacy with your local 
 ### Prerequisites
 
 - **Node.js 18+**
-- **npm** (comes with Node.js)
+- **pnpm** (recommended package manager)
 - **Docker & Docker Compose**
 - **LM Studio** (recommended for local LLM) OR **OpenAI API Key**
 
@@ -134,7 +134,7 @@ git clone <repository-url>
 cd scout
 
 # Install all dependencies
-npm install
+pnpm install
 ```
 
 2. **Local LLM Setup (Recommended)**:
@@ -191,7 +191,7 @@ docker-compose up -d
 ./start-services.sh
 
 # Then start the app locally
-npm run dev
+pnpm run dev
 ```
 
 **Option B: Full Docker Deployment**
@@ -209,7 +209,7 @@ docker-compose up -d
 **For Local Development:**
 ```bash
 # Start the application
-npm run dev
+pnpm run dev
 
 # Open http://localhost:3000 in your browser
 ```
@@ -374,41 +374,41 @@ const results = await memory.search('quantum error correction', {
 
 ```bash
 # Lint and format with Biome
-npm run lint
-npm run lint:fix
+pnpm run lint
+pnpm run lint:fix
 
 # Type checking
-npm run type-check
+pnpm run type-check
 
 # Build all packages
-npm run build
+pnpm run build
 ```
 
 ### Development Commands
 
 ```bash
 # Start all packages in development mode
-npm run dev
+pnpm run dev
 
 # Build all packages
-npm run build
+pnpm run build
 
 # Clean all build artifacts
-npm run clean
+pnpm run clean
 ```
 
 ## Contributing
 
 1. **Setup development environment**:
 ```bash
-npm install
-npm run type-check
+pnpm install
+pnpm run type-check
 ```
 
 2. **Follow coding standards**:
 ```bash
-npm run lint
-npm run format
+pnpm run lint
+pnpm run format
 ```
 
 3. **Add tests** for new features
@@ -423,7 +423,7 @@ npm run format
 cd docker && docker-compose up -d
 
 # Start development servers
-npm run dev
+pnpm run dev
 
 # Open browser at http://localhost:3000
 ```
