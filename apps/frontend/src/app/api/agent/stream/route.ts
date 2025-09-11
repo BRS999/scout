@@ -21,6 +21,13 @@ export async function POST(request: NextRequest) {
     const stream = await createAgentStream(messages, {
       threadId,
       resourceId,
+      memoryOptions: {
+        lastMessages: 10,
+        semanticRecall: {
+          topK: 3,
+          messageRange: 2,
+        },
+      },
     })
 
     return new NextResponse(stream, {
