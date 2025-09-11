@@ -20,25 +20,35 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: 'npm'
+          cache: 'pnpm'
           cache-dependency-path: |
-            package-lock.json
+            pnpm-lock.yaml
             turbo.json
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Install dependencies
-        run: npm ci
-
-      - name: Lint code
-        run: npm run lint
-
-      - name: Type check
-        run: npm run type-check
-      
-      - name: Test
-        run: npm run test
+        run: pnpm install --frozen-lockfile
 
       - name: Build packages
-        run: npm run build
+        run: turbo build
+
+      - name: Configure Turbo Cache
+        run: |
+          echo "TURBO_FORCE=true" >> $GITHUB_ENV
+          echo "TURBO_REMOTE_CACHE_DISABLED=true" >> $GITHUB_ENV
+
+      - name: Lint code
+        run: turbo lint
+
+      - name: Type check
+        run: turbo type-check
+
+      - name: Test
+        run: turbo test
 
   docker-build:
     runs-on: ubuntu-latest

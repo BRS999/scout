@@ -41,47 +41,15 @@ echo ""
 echo "🔍 Service Status:"
 echo "  📊 Redis:        http://localhost:6379"
 echo "  🔎 SearxNG:      http://localhost:8080"
-echo "  🚀 Backend API:  http://localhost:8777"
-echo "  🌐 Frontend:     http://localhost:3001"
+echo "  🌐 Frontend + API: http://localhost:3000"
 echo ""
 echo "⏳ Waiting for services to be ready..."
-
-# Wait for backend to be healthy
-echo "Waiting for backend to be ready..."
-timeout=120
-counter=0
-while ! curl -f http://localhost:8777/health > /dev/null 2>&1; do
-    if [ $counter -ge $timeout ]; then
-        echo "❌ Backend failed to start within ${timeout} seconds"
-        echo "Check the logs with: docker-compose logs backend"
-        exit 1
-    fi
-    counter=$((counter + 5))
-    echo -n "."
-    sleep 5
-done
-
-echo ""
-echo "✅ Backend is ready!"
-echo ""
-
-# Wait for frontend to be ready
-echo "Waiting for frontend to be ready..."
-counter=0
-while ! curl -f http://localhost:3001 > /dev/null 2>&1; do
-    if [ $counter -ge 60 ]; then
-        echo "⚠️  Frontend might still be building..."
-        break
-    fi
-    counter=$((counter + 5))
-    echo -n "."
-    sleep 5
-done
 
 echo ""
 echo "🎉 Scout is now running!"
 echo ""
-echo "🌐 Open your browser to: http://localhost:3001"
+echo "🌐 Open your browser to: http://localhost:3000"
+echo "   (Frontend + API are unified in one service)"
 echo ""
 echo "📋 Useful commands:"
 echo "  📊 View logs:       docker-compose logs -f"

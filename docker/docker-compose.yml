@@ -29,7 +29,7 @@ services:
     volumes:
       - ../searxng:/etc/searxng:rw,z
     environment:
-      - SEARXNG_BASE_URL=http://localhost:8080/
+      - SEARXNG_URL=http://localhost:8080/
       - SEARXNG_SECRET_KEY=${SEARXNG_SECRET_KEY:-changeme}
       - UWSGI_WORKERS=4
       - UWSGI_THREADS=4
@@ -77,77 +77,41 @@ services:
     networks:
       - scout-net
 
-  backend:
-    container_name: scout-backend
-    build:
-      context: ..
-      dockerfile: ./apps/backend/Dockerfile
-    restart: unless-stopped
-    ports:
-      - "8777:7777"
-    environment:
-      # LM Studio connection (from host)
-      - LMSTUDIO_URL=http://host.docker.internal:1234/v1
-      - LMSTUDIO_API_KEY=lm-studio
-      # Local model configuration
-      - LOCAL_MODEL=openai/gpt-oss-20b
-      # Database and external services (Docker service names)
-      - CHROMADB_URL=http://chromadb:8000
-      - SEARXNG_BASE_URL=http://searxng:8080
-      - SQLITE_PATH=/data/memory.db
-      # Steel Browser integration
-      - STEEL_BROWSER_URL=http://steel-browser:3000
-      - STEEL_API_URL=http://steel-browser:3000
-      - STEEL_CDP_URL=http://steel-browser:9223
-      # Application settings
-      - NODE_ENV=production
-      - HOST=0.0.0.0
-      - OPENAI_API_KEY=lm-studio
-      - PORT=7777
-      # Backend specific settings
-      - SEARNX_URL=http://searxng:8080
-      - NEXT_PUBLIC_BACKEND_URL=http://localhost:7777
-    depends_on:
-      - searxng
-      - chromadb
-      - steel-browser
-    networks:
-      - scout-net
-    volumes:
-      - backend-data:/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7777/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
   frontend:
     container_name: scout-frontend
     build:
       context: ..
       dockerfile: ./apps/frontend/Dockerfile
-      args:
-        NEXT_PUBLIC_BACKEND_URL: "http://localhost:8777"
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "3010:3000"
     environment:
       - HOSTNAME=0.0.0.0
+      - PORT=3000
+      # LM Studio connection (from host)
+      - LMSTUDIO_URL=http://host.docker.internal:1234/v1
+      - LMSTUDIO_API_KEY=lm-studio
+      # Local model configuration
+      - LOCAL_MODEL=openai/gpt-oss-20b
+      # External services (Docker service names)
+      - SEARXNG_BASE_URL=http://searxng:8080
+      # Steel Browser integration
+      - STEEL_BROWSER_URL=http://steel-browser:3000
+      - CHROMADB_URL=http://chromadb:8000
     depends_on:
-      - backend
+      - searxng
+      - steel-browser
     networks:
       - scout-net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 50s
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
   
 volumes:
   redis-data:
-  backend-data:
   chroma-data:
   steel-cache:
 
