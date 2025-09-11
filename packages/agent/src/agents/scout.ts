@@ -6,6 +6,7 @@ import { xenovaEmbedder } from '../embedders/xenova'
 import { makeModel } from '../model'
 import { SYSTEM_PROMPT } from '../prompts/system'
 import { searxSearchTool } from '../tools/search.tool'
+import { steelScrapeTool } from '../tools/steel-scrape.tool'
 
 export const scoutAgent = new Agent({
   name: 'Scout Agent',
@@ -13,6 +14,7 @@ export const scoutAgent = new Agent({
   model: makeModel(),
   tools: {
     searxSearch: searxSearchTool,
+    steelScrape: steelScrapeTool,
   },
   memory: new Memory({
     storage: new PostgresStore({
