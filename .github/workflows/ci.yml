@@ -16,6 +16,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -25,21 +30,16 @@ jobs:
             pnpm-lock.yaml
             turbo.json
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Build packages
-        run: turbo build
 
       - name: Configure Turbo Cache
         run: |
           echo "TURBO_FORCE=true" >> $GITHUB_ENV
           echo "TURBO_REMOTE_CACHE_DISABLED=true" >> $GITHUB_ENV
+
+      - name: Build packages
+        run: turbo build
 
       - name: Lint code
         run: turbo lint
@@ -49,6 +49,7 @@ jobs:
 
       - name: Test
         run: turbo test
+
 
   docker-build:
     runs-on: ubuntu-latest
