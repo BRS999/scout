@@ -39,7 +39,7 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "^4.9.6"
+    "@rollup/rollup-linux-x64-gnu": "^4.52.3"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
